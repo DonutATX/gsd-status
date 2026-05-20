@@ -62,24 +62,12 @@ async function updateStatusBar(
 }
 
 function parseLite(md: string): { milestone: string; phase: string } {
-  // Milestone: prefer first "## Milestone vX.Y" header; else first H1 with
-  // "Roadmap:" prefix and/or "— Roadmap" suffix stripped; else literal "GSD".
-  let milestone = 'GSD';
-  const milestoneHeader = md.match(/^##\s+Milestone\s+v\d+\.\d+[^\n]*$/m);
-  if (milestoneHeader) {
-    milestone = milestoneHeader[0].replace(/^##\s+/, '').trim();
-  } else {
-    const h1 = md.match(/^#\s+(.+)$/m);
-    if (h1) {
-      let label = h1[1].trim();
-      label = label.replace(/^Roadmap:\s*/, '');
-      label = label.replace(/\s*—\s*Roadmap\s*$/, '');
-      label = label.trim();
-      if (label.length > 0) {
-        milestone = label;
-      }
-    }
-  }
+  // Milestone: prefer first "## Milestone vX.Y" header (stripped to "vX.Y"
+  // or "vX.Y — Label" since the "Milestone" word is redundant once the
+  // status bar separator '›' is in place); else first H1 with "Roadmap:"
+  // prefix and/or "— Roadmap" suffix stripped; else literal "GSD". IN-05:
+  // the Milestone branch returns null on no match so the H1 fallback runs.
+  const milestone = pickMilestone(md) ?? 'GSD';
 
   // Active phase: first "### Phase N: ..." section header whose phase number
   // is NOT marked done. Done-detection consults both the bullet-list
@@ -109,4 +97,25 @@ function parseLite(md: string): { milestone: string; phase: string } {
   }
 
   return { milestone: milestone.trim(), phase };
+}
+
+// IN-05: return null on no match so the caller can fall back through
+// (Milestone header → H1 → literal "GSD"). Strips both "## " and the
+// redundant leading "Milestone " so the status bar renders "v1.0 — Label"
+// rather than "Milestone v1.0 — Label".
+function pickMilestone(md: string): string | null {
+  const milestoneHeader = md.match(/^##\s+Milestone\s+v\d+\.\d+[^\r\n]*$/m);
+  if (milestoneHeader) {
+    const label = milestoneHeader[0].replace(/^##\s+Milestone\s+/, '').trim();
+    return label.length > 0 ? label : null;
+  }
+  const h1 = md.match(/^#\s+(.+?)\s*$/m);
+  if (h1) {
+    let label = h1[1].trim();
+    label = label.replace(/^Roadmap:\s*/, '');
+    label = label.replace(/\s*—\s*Roadmap\s*$/, '');
+    label = label.trim();
+    if (label.length > 0) return label;
+  }
+  return null;
 }
