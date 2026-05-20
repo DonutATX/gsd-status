@@ -8,9 +8,9 @@
 ### Scaffold & Activation
 
 - [ ] **SCAF-01**: Extension scaffolded as a TypeScript VS Code extension (`yo code`, unbundled) with `engines.vscode: "^1.95.0"` and `@types/vscode` pinned to the same minor
-- [ ] **SCAF-02**: Activation event is `onStartupFinished` so the extension never blocks VS Code startup
+- [x] **SCAF-02**: Activation event is `onStartupFinished` so the extension never blocks VS Code startup
 - [ ] **SCAF-03**: `.vscodeignore` configured so the packaged `.vsix` excludes sources, tests, planning docs, and dev-only files
-- [ ] **SCAF-04**: All disposables (status bar item, watcher, timer wrapper, tree view) are pushed to `context.subscriptions`
+- [x] **SCAF-04**: All disposables (status bar item, watcher, timer wrapper, tree view) are pushed to `context.subscriptions`
 - [ ] **SCAF-05**: Extension manifest declares `publisher`, `name`, `displayName`, `description`, `categories`, repository URL, and a `LICENSE` is present
 
 ### Parsing
@@ -23,7 +23,7 @@
 
 ### Workspace Detection & State
 
-- [ ] **WSP-01**: Extension uses `workspaceFolders?.[0]` and shows a "No GSD project" state when no workspace folder, no `.planning/` directory, or no `ROADMAP.md` is present
+- [x] **WSP-01**: Extension uses `workspaceFolders?.[0]` and shows a "No GSD project" state when no workspace folder, no `.planning/` directory, or no `ROADMAP.md` is present
 - [ ] **WSP-02**: `StateController` owns the current `GsdState`, calls parsers on refresh, and fires an `onStateChanged` event consumed by all UI surfaces
 - [ ] **WSP-03**: `StateController.refresh()` reads both ROADMAP.md and STATE.md atomically (one logical refresh, one event emission)
 - [ ] **WSP-04**: Parse / I/O errors are surfaced as an "Error parsing GSD files" status (not a thrown exception that kills the controller)
@@ -37,8 +37,8 @@
 
 ### Status Bar UI
 
-- [ ] **STAT-01**: Status bar item is always visible (left-aligned, low priority) and shows `$(icon) Milestone › Phase` when a GSD project is detected
-- [ ] **STAT-02**: Status bar shows `GSD: No project` when no `.planning/` is detected in the active workspace
+- [x] **STAT-01**: Status bar item is always visible (left-aligned, low priority) and shows `$(icon) Milestone › Phase` when a GSD project is detected
+- [x] **STAT-02**: Status bar shows `GSD: No project` when no `.planning/` is detected in the active workspace
 - [ ] **STAT-03**: Hover tooltip shows milestone name, active phase name + goal, and the most recent STATE.md entry (text + timestamp)
 - [ ] **STAT-04**: Status bar item has a default command (clicking it runs `gsd.openState` or opens the side panel — choose one and document)
 - [ ] **STAT-05**: Status bar text updates ≤500ms after a debounced file-change event under normal load
@@ -110,13 +110,13 @@ Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SCAF-01 | Phase 1 | Pending |
-| SCAF-02 | Phase 1 | Pending |
+| SCAF-02 | Phase 1 | Complete |
 | SCAF-03 | Phase 1 | Pending |
-| SCAF-04 | Phase 1 | Pending |
+| SCAF-04 | Phase 1 | Complete |
 | SCAF-05 | Phase 1 | Pending |
-| STAT-01 | Phase 1 | Pending |
-| STAT-02 | Phase 1 | Pending |
-| WSP-01 | Phase 1 | Pending |
+| STAT-01 | Phase 1 | Complete |
+| STAT-02 | Phase 1 | Complete |
+| WSP-01 | Phase 1 | Complete |
 | PARS-01 | Phase 2 | Pending |
 | PARS-02 | Phase 2 | Pending |
 | PARS-03 | Phase 2 | Pending |

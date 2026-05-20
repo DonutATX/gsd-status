@@ -12,7 +12,7 @@ Six vertical slices that build a living GSD workflow status display inside VS Co
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Scaffold + Minimal Status Bar** - Working extension scaffold that shows current phase name in VS Code status bar by reading a real ROADMAP.md
+- [x] **Phase 1: Scaffold + Minimal Status Bar** - Working extension scaffold that shows current phase name in VS Code status bar by reading a real ROADMAP.md (completed 2026-05-20)
 - [ ] **Phase 2: Parsers + Tests** - Pure, fully-tested parser modules for ROADMAP.md and STATE.md — no VS Code host required to run tests
 - [ ] **Phase 3: StateController + File Watching** - Live state management with FileSystemWatcher, debounce, and periodic refresh fallback wired to the status bar
 - [ ] **Phase 4: Tooltip, Commands + Configuration** - Complete status bar surface with hover tooltip, user commands in the Command Palette, and configurable settings
@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. All disposables (status bar item) are registered in context.subscriptions so they clean up on deactivation
   5. Extension manifest is complete (publisher, name, displayName, description, categories, repository, LICENSE)
 **Plans**: 2 plans
-- [ ] 01-01-PLAN.md — Hand-written extension scaffold (manifest, tsconfig, .vscodeignore, LICENSE, README, launch.json)
-- [ ] 01-02-PLAN.md — Extension activation + StatusBarItem with inline parseLite helper
+- [x] 01-01-PLAN.md — Hand-written extension scaffold (manifest, tsconfig, .vscodeignore, LICENSE, README, launch.json)
+- [x] 01-02-PLAN.md — Extension activation + StatusBarItem with inline parseLite helper
 **UI hint**: yes
 
 ### Phase 2: Parsers + Tests
@@ -109,7 +109,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold + Minimal Status Bar | 0/2 | Not started | - |
+| 1. Scaffold + Minimal Status Bar | 2/2 | Complete   | 2026-05-20 |
 | 2. Parsers + Tests | 0/TBD | Not started | - |
 | 3. StateController + File Watching | 0/TBD | Not started | - |
 | 4. Tooltip, Commands + Configuration | 0/TBD | Not started | - |
