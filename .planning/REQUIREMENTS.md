@@ -109,13 +109,53 @@ Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (filled by roadmapper) | — | Pending |
+| SCAF-01 | Phase 1 | Pending |
+| SCAF-02 | Phase 1 | Pending |
+| SCAF-03 | Phase 1 | Pending |
+| SCAF-04 | Phase 1 | Pending |
+| SCAF-05 | Phase 1 | Pending |
+| STAT-01 | Phase 1 | Pending |
+| STAT-02 | Phase 1 | Pending |
+| WSP-01 | Phase 1 | Pending |
+| PARS-01 | Phase 2 | Pending |
+| PARS-02 | Phase 2 | Pending |
+| PARS-03 | Phase 2 | Pending |
+| PARS-04 | Phase 2 | Pending |
+| PARS-05 | Phase 2 | Pending |
+| WSP-02 | Phase 3 | Pending |
+| WSP-03 | Phase 3 | Pending |
+| WSP-04 | Phase 3 | Pending |
+| WAT-01 | Phase 3 | Pending |
+| WAT-02 | Phase 3 | Pending |
+| WAT-03 | Phase 3 | Pending |
+| WAT-04 | Phase 3 | Pending |
+| STAT-05 | Phase 3 | Pending |
+| STAT-03 | Phase 4 | Pending |
+| STAT-04 | Phase 4 | Pending |
+| CMD-01 | Phase 4 | Pending |
+| CMD-02 | Phase 4 | Pending |
+| CMD-03 | Phase 4 | Pending |
+| CMD-04 | Phase 4 | Pending |
+| CFG-01 | Phase 4 | Pending |
+| CFG-02 | Phase 4 | Pending |
+| CFG-03 | Phase 4 | Pending |
+| PANL-01 | Phase 5 | Pending |
+| PANL-02 | Phase 5 | Pending |
+| PANL-03 | Phase 5 | Pending |
+| PANL-04 | Phase 5 | Pending |
+| PANL-05 | Phase 5 | Pending |
+| PANL-06 | Phase 5 | Pending |
+| PANL-07 | Phase 5 | Pending |
+| PKG-01 | Phase 6 | Pending |
+| PKG-02 | Phase 6 | Pending |
+| PKG-03 | Phase 6 | Pending |
+| PKG-04 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 36 total
-- Mapped to phases: 0 (pending roadmapper)
-- Unmapped: 36 ⚠️
+- Mapped to phases: 36
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-20*
-*Last updated: 2026-05-20 after initial definition*
+*Last updated: 2026-05-20 after roadmap creation*
