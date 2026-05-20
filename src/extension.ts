@@ -1,0 +1,83 @@
+import * as vscode from 'vscode';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
+export function activate(context: vscode.ExtensionContext): void {
+  const item = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100
+  );
+  context.subscriptions.push(item);
+  item.text = 'GSD: No project';
+  item.show();
+
+  // Fire-and-forget — never block activate()
+  void updateStatusBar(item);
+}
+
+export function deactivate(): void {
+  // No-op: context.subscriptions disposes the StatusBarItem.
+}
+
+async function updateStatusBar(item: vscode.StatusBarItem): Promise<void> {
+  const folder = vscode.workspace.workspaceFolders?.[0];
+  if (!folder) {
+    item.text = 'GSD: No project';
+    return;
+  }
+
+  const roadmapPath = path.join(folder.uri.fsPath, '.planning', 'ROADMAP.md');
+  let content: string;
+  try {
+    content = await fs.readFile(roadmapPath, 'utf8');
+  } catch {
+    item.text = 'GSD: No project';
+    return;
+  }
+
+  try {
+    const { milestone, phase } = parseLite(content);
+    item.text = `$(pulse) ${milestone} › ${phase}`;
+  } catch {
+    item.text = 'GSD: Parse error';
+  }
+}
+
+function parseLite(md: string): { milestone: string; phase: string } {
+  // Milestone: prefer first "## Milestone vX.Y" header; else first H1 with
+  // "Roadmap:" prefix and/or "— Roadmap" suffix stripped; else literal "GSD".
+  let milestone = 'GSD';
+  const milestoneHeader = md.match(/^##\s+Milestone\s+v\d+\.\d+[^\n]*$/m);
+  if (milestoneHeader) {
+    milestone = milestoneHeader[0].replace(/^##\s+/, '').trim();
+  } else {
+    const h1 = md.match(/^#\s+(.+)$/m);
+    if (h1) {
+      let label = h1[1].trim();
+      label = label.replace(/^Roadmap:\s*/, '');
+      label = label.replace(/\s*—\s*Roadmap\s*$/, '');
+      label = label.trim();
+      if (label.length > 0) {
+        milestone = label;
+      }
+    }
+  }
+
+  // Active phase: first "### Phase N: ..." line not marked done.
+  let phase: string | null = null;
+  const lines = md.split('\n');
+  for (const line of lines) {
+    const m = line.match(/^###\s+(Phase\s+\d+:\s+.+)$/);
+    if (!m) continue;
+    if (line.includes('✅')) continue;
+    if (/\[x\]/i.test(line)) continue;
+    phase = m[1].trim();
+    break;
+  }
+
+  if (!phase) {
+    throw new Error('No active phase found');
+  }
+
+  return { milestone: milestone.trim(), phase };
+}
