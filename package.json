@@ -12,9 +12,13 @@
   "engines": {
     "vscode": "^1.95.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "main": "./out/extension.js",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {},
   "capabilities": {
     "untrustedWorkspaces": {
@@ -26,11 +30,17 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p .",
+    "test": "npm run compile && mocha \"out/test/parsers/**/*.test.js\"",
+    "test:parsers": "mocha \"out/test/parsers/**/*.test.js\"",
     "package:vsix": "vsce package"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20",
     "@types/vscode": "^1.95.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "mocha": "^11.7.5",
     "typescript": "^5.8"
   }
 }
