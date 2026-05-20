@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { parseRoadmap } from '../../parsers/roadmap.js';
 
-const FIXTURES = path.join(__dirname, 'fixtures');
+// __dirname at test time = out/test/parsers; fixtures live under src/test/parsers/fixtures.
+const FIXTURES = path.resolve(__dirname, '..', '..', '..', 'src', 'test', 'parsers', 'fixtures');
 
 function load(name: string): string {
   return readFileSync(path.join(FIXTURES, name), 'utf8');
