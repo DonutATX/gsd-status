@@ -32,7 +32,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Extension activates via onStartupFinished and never blocks VS Code startup
   4. All disposables (status bar item) are registered in context.subscriptions so they clean up on deactivation
   5. Extension manifest is complete (publisher, name, displayName, description, categories, repository, LICENSE)
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 01-01-PLAN.md — Hand-written extension scaffold (manifest, tsconfig, .vscodeignore, LICENSE, README, launch.json)
+- [ ] 01-02-PLAN.md — Extension activation + StatusBarItem with inline parseLite helper
 **UI hint**: yes
 
 ### Phase 2: Parsers + Tests
@@ -107,7 +109,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold + Minimal Status Bar | 0/TBD | Not started | - |
+| 1. Scaffold + Minimal Status Bar | 0/2 | Not started | - |
 | 2. Parsers + Tests | 0/TBD | Not started | - |
 | 3. StateController + File Watching | 0/TBD | Not started | - |
 | 4. Tooltip, Commands + Configuration | 0/TBD | Not started | - |
