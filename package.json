@@ -26,7 +26,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p .",
-    "package": "vsce package"
+    "package:vsix": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20",
