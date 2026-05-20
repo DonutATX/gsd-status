@@ -64,7 +64,10 @@ export function parseState(text: string): StateData {
   } else {
     const fmLastActivity = fm.get('last_activity');
     if (fmLastActivity !== undefined) {
-      data.lastEntry = buildEntry(stripQuotes(fmLastActivity) as string);
+      // stripQuotes returns string when given string; fall back to the raw
+      // frontmatter value if it ever widens to undefined. Avoids unsafe cast.
+      const stripped = stripQuotes(fmLastActivity) ?? fmLastActivity;
+      data.lastEntry = buildEntry(stripped);
     }
   }
 
