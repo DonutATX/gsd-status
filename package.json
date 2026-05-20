@@ -1,0 +1,36 @@
+{
+  "name": "gsd-status",
+  "displayName": "GSD Status",
+  "description": "Live GSD workflow state — milestone, phase, and recent activity — in your VS Code status bar.",
+  "version": "0.1.0",
+  "publisher": "donutatx",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DonutATX/gsd-extenstion"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {},
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "Read-only display of GSD planning files."
+    },
+    "virtualWorkspaces": true
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/vscode": "^1.95.0",
+    "typescript": "^5.8"
+  }
+}
