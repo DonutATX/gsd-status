@@ -14,10 +14,13 @@ const H1 = /^#\s+(.+?)\s*$/;
 const ROADMAP_PREFIX = /^Roadmap:\s*/;
 const MILESTONE = /^##\s+Milestone\s+(v\d+(?:\.\d+)?[^\r\n]*)$/;
 const PHASE_HEADER = /^###\s+Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\s*$/;
-const GOAL = /^\*\*Goal\*\*:\s*(.+?)\s*$/;
-const MODE = /^\*\*Mode:\*\*\s*(.+?)\s*$/;
-const DEPENDS_ON = /^\*\*Depends on\*\*:\s*(.+?)\s*$/;
-const REQUIREMENTS = /^\*\*Requirements\*\*:\s*(.+?)\s*$/;
+// Accept both `**Key:**` and `**Key**:` punctuation styles. Real GSD files
+// mix conventions (canonical ROADMAP.md uses `**Goal**:` and `**Mode:**` on
+// adjacent lines), so each directive tolerates either form.
+const GOAL = /^\*\*Goal(?:\*\*:|:\*\*)\s*(.+?)\s*$/;
+const MODE = /^\*\*Mode(?:\*\*:|:\*\*)\s*(.+?)\s*$/;
+const DEPENDS_ON = /^\*\*Depends on(?:\*\*:|:\*\*)\s*(.+?)\s*$/;
+const REQUIREMENTS = /^\*\*Requirements(?:\*\*:|:\*\*)\s*(.+?)\s*$/;
 const SUCCESS_HEADER = /^\*\*Success Criteria\*\*/;
 const SUCCESS_ITEM = /^\s+\d+\.\s+(.+?)\s*$/;
 const DIRECTIVE = /^\*\*/;

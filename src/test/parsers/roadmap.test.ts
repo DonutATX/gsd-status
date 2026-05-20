@@ -91,3 +91,38 @@ describe('parseRoadmap — robustness (PARS-03)', () => {
     assert.equal(data.phases[0].number, '2.1');
   });
 });
+
+describe('parseRoadmap — directive punctuation styles (WR-01)', () => {
+  it('accepts colon-outside style (**Goal**:)', () => {
+    const data = parseRoadmap(
+      '### Phase 1: A\n**Goal**: outside style\n**Mode**: mvp\n' +
+        '**Depends on**: none\n**Requirements**: R-01, R-02\n',
+    );
+    assert.equal(data.phases[0].goal, 'outside style');
+    assert.equal(data.phases[0].mode, 'mvp');
+    assert.equal(data.phases[0].dependsOn, 'none');
+    assert.deepEqual(data.phases[0].requirements, ['R-01', 'R-02']);
+  });
+
+  it('accepts colon-inside style (**Goal:**)', () => {
+    const data = parseRoadmap(
+      '### Phase 1: A\n**Goal:** inside style\n**Mode:** mvp\n' +
+        '**Depends on:** none\n**Requirements:** R-01, R-02\n',
+    );
+    assert.equal(data.phases[0].goal, 'inside style');
+    assert.equal(data.phases[0].mode, 'mvp');
+    assert.equal(data.phases[0].dependsOn, 'none');
+    assert.deepEqual(data.phases[0].requirements, ['R-01', 'R-02']);
+  });
+
+  it('accepts mixed styles across directives in a single phase', () => {
+    const data = parseRoadmap(
+      '### Phase 1: A\n**Goal**: outside\n**Mode:** inside\n' +
+        '**Depends on:** inside\n**Requirements**: R-01\n',
+    );
+    assert.equal(data.phases[0].goal, 'outside');
+    assert.equal(data.phases[0].mode, 'inside');
+    assert.equal(data.phases[0].dependsOn, 'inside');
+    assert.deepEqual(data.phases[0].requirements, ['R-01']);
+  });
+});
