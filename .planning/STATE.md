@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Roadmap created. Phase 1 ready to plan.
-last_updated: "2026-05-20T20:31:23.470Z"
-last_activity: 2026-05-20 — Roadmap created, Phase 1 ready for planning
+stopped_at: Phase 2 complete (parsers + tests). Halted per --to 2.
+last_updated: "2026-05-20T21:00:00.000Z"
+last_activity: 2026-05-20 — Phase 2 complete: 31 parser tests green, code review applied (WR-01, WR-03)
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 17
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
+  percent: 33
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** A developer running GSD in a project can glance at VS Code and immediately know: which milestone, which phase, and what just happened — without leaving the editor.
-**Current focus:** Phase 1 — Scaffold + Minimal Status Bar
+**Current focus:** Phase 3 — StateController + File Watching (next)
 
 ## Current Position
 
-Phase: 1 of 6 (Scaffold + Minimal Status Bar)
+Phase: 2 of 6 (Parsers + Tests)
 Plan: 2 of 2 in current phase (complete)
-Status: Phase 1 complete — ready for Phase 2 planning
-Last activity: 2026-05-20 — Completed 01-02-PLAN.md (extension activation + parseLite)
+Status: Phase 2 complete — verification passed, code review fixes applied. Ready for Phase 3 planning.
+Last activity: 2026-05-20 — Phase 2 complete: 31 parser tests green, WR-01/WR-03 fixed
 
-Progress: [██████████] 100%
+Progress: [██░░░░░░░░] 33%
 
 ## Performance Metrics
 

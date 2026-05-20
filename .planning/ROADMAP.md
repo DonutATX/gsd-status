@@ -13,7 +13,7 @@ Six vertical slices that build a living GSD workflow status display inside VS Co
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Scaffold + Minimal Status Bar** - Working extension scaffold that shows current phase name in VS Code status bar by reading a real ROADMAP.md (completed 2026-05-20)
-- [ ] **Phase 2: Parsers + Tests** - Pure, fully-tested parser modules for ROADMAP.md and STATE.md — no VS Code host required to run tests
+- [x] **Phase 2: Parsers + Tests** - Pure, fully-tested parser modules for ROADMAP.md and STATE.md — no VS Code host required to run tests (completed 2026-05-20)
 - [ ] **Phase 3: StateController + File Watching** - Live state management with FileSystemWatcher, debounce, and periodic refresh fallback wired to the status bar
 - [ ] **Phase 4: Tooltip, Commands + Configuration** - Complete status bar surface with hover tooltip, user commands in the Command Palette, and configurable settings
 - [ ] **Phase 5: Side Panel TreeView** - Activity Bar side panel listing all phases with active phase highlight, recent activity, and welcome view
@@ -48,6 +48,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. STATE.md parser returns typed StateData (milestone, phase id/name, last entry text + timestamp) for any valid GSD state file
   4. Both parsers handle missing fields, partial files, and CRLF/LF line endings without throwing
   5. A stress test with pathological regex input passes in <100ms, confirming no catastrophic backtracking
+**Plans**: 2 plans
+- [ ] 02-01-PLAN.md — Install Mocha harness, define parser types + line helper, stage fixtures
+- [ ] 02-02-PLAN.md — TDD parseRoadmap + parseState + PARS-05 stress guard
 
 ### Phase 3: StateController + File Watching
 **Goal**: Status bar updates automatically within 500ms whenever ROADMAP.md or STATE.md changes on disk, with no editor blocking
@@ -110,7 +113,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffold + Minimal Status Bar | 2/2 | Complete   | 2026-05-20 |
-| 2. Parsers + Tests | 0/TBD | Not started | - |
+| 2. Parsers + Tests | 0/2 | Not started | - |
 | 3. StateController + File Watching | 0/TBD | Not started | - |
 | 4. Tooltip, Commands + Configuration | 0/TBD | Not started | - |
 | 5. Side Panel TreeView | 0/TBD | Not started | - |
