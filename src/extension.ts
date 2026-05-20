@@ -63,12 +63,23 @@ function parseLite(md: string): { milestone: string; phase: string } {
     }
   }
 
-  // Active phase: first "### Phase N: ..." line not marked done.
-  let phase: string | null = null;
-  const lines = md.split('\n');
+  // Active phase: first "### Phase N: ..." section header whose phase number
+  // is NOT marked done. Done-detection consults both the bullet-list
+  // checkbox row ("- [x] **Phase N: ...") AND inline markers on the header
+  // line itself ("✅" / "[x]"). WR-01: the bullet-list scan is required
+  // because GSD ROADMAP.md tracks completion on the bullet, not the header.
+  // This bumps parseLite to ~45 LOC — Phase 2 replaces it with a proper parser.
+  const lines = md.split(/\r?\n/);
+  const doneNumbers = new Set<string>();
   for (const line of lines) {
-    const m = line.match(/^###\s+(Phase\s+\d+:\s+.+)$/);
+    const b = line.match(/^- \[[xX✅]\]\s+\*\*Phase\s+(\d+(?:\.\d+)?)/);
+    if (b) doneNumbers.add(b[1]);
+  }
+  let phase: string | null = null;
+  for (const line of lines) {
+    const m = line.match(/^###\s+(Phase\s+(\d+(?:\.\d+)?):\s+.+?)\s*$/);
     if (!m) continue;
+    if (doneNumbers.has(m[2])) continue;
     if (line.includes('✅')) continue;
     if (/\[x\]/i.test(line)) continue;
     phase = m[1].trim();

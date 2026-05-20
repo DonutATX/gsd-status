@@ -22,8 +22,8 @@ Requirements covered: SCAF-01 through SCAF-05, STAT-01, STAT-02, WSP-01.
 - Click action: None in Phase 1 — `command` field omitted on the status bar item; default click is a no-op. `gsd.openState` / `gsd.openRoadmap` ship in Phase 4.
 
 ### Phase 1 Parsing Strategy
-- Use a thin inline regex helper (~≤40 lines) inside `extension.ts` (or a sibling `src/roadmap-lite.ts`) — Phase 2 will replace it with the proper parser module
-- "Active phase" = first `### Phase N:` header in ROADMAP.md whose line is not marked `✅` or `[x]` — no STATE.md dependency yet (STATE parsing is Phase 3)
+- Use a thin inline regex helper (~≤45 lines, raised from 40 to accommodate the WR-01 bullet-list scan) inside `extension.ts` (or a sibling `src/roadmap-lite.ts`) — Phase 2 will replace it with the proper parser module
+- "Active phase" = first `### Phase N:` section header in ROADMAP.md whose phase number is NOT marked complete by EITHER (a) a bullet-list row `- [x] **Phase N: ...**` OR (b) an inline `✅` / `[x]` on the header line itself — no STATE.md dependency yet (STATE parsing is Phase 3). [Updated per WR-01: original spec only checked the header line, which mis-reported Phase 1 as active after it shipped.]
 - Refresh model: read ROADMAP.md once on activation only — file watching arrives in Phase 3
 - Parse error behavior: show `GSD: Parse error` text in the status bar; never throw out of the activation handler (consistent with WSP-04's intent applied early)
 
