@@ -8,38 +8,56 @@ export function activate(context: vscode.ExtensionContext): void {
     100
   );
   context.subscriptions.push(item);
+  // IN-04: track disposal so a late-resolving updateStatusBar() doesn't
+  // touch a disposed StatusBarItem. Phase 3's file watcher will reuse this.
+  const lifecycle = { disposed: false };
+  context.subscriptions.push({ dispose: () => { lifecycle.disposed = true; } });
   item.text = 'GSD: No project';
   item.show();
 
   // Fire-and-forget — never block activate()
-  void updateStatusBar(item);
+  void updateStatusBar(item, lifecycle);
 }
 
 export function deactivate(): void {
   // No-op: context.subscriptions disposes the StatusBarItem.
 }
 
-async function updateStatusBar(item: vscode.StatusBarItem): Promise<void> {
-  const folder = vscode.workspace.workspaceFolders?.[0];
-  if (!folder) {
-    item.text = 'GSD: No project';
-    return;
-  }
-
-  const roadmapPath = path.join(folder.uri.fsPath, '.planning', 'ROADMAP.md');
-  let content: string;
+async function updateStatusBar(
+  item: vscode.StatusBarItem,
+  lifecycle: { disposed: boolean }
+): Promise<void> {
+  // IN-04: defensive guard. Wrap the whole body so any throw during shutdown
+  // (e.g., write to a disposed item) is swallowed rather than surfacing as
+  // an unhandled rejection from the fire-and-forget call in activate().
   try {
-    content = await fs.readFile(roadmapPath, 'utf8');
-  } catch {
-    item.text = 'GSD: No project';
-    return;
-  }
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (!folder) {
+      if (lifecycle.disposed) return;
+      item.text = 'GSD: No project';
+      return;
+    }
 
-  try {
-    const { milestone, phase } = parseLite(content);
-    item.text = `$(pulse) ${milestone} › ${phase}`;
+    const roadmapPath = path.join(folder.uri.fsPath, '.planning', 'ROADMAP.md');
+    let content: string;
+    try {
+      content = await fs.readFile(roadmapPath, 'utf8');
+    } catch {
+      if (lifecycle.disposed) return;
+      item.text = 'GSD: No project';
+      return;
+    }
+
+    try {
+      const { milestone, phase } = parseLite(content);
+      if (lifecycle.disposed) return;
+      item.text = `$(pulse) ${milestone} › ${phase}`;
+    } catch {
+      if (lifecycle.disposed) return;
+      item.text = 'GSD: Parse error';
+    }
   } catch {
-    item.text = 'GSD: Parse error';
+    // Last-resort guard — never let activate()'s fire-and-forget reject.
   }
 }
 
