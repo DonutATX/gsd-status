@@ -55,10 +55,10 @@
 
 ### Commands
 
-- [ ] **CMD-01**: `gsd.refresh` — manually trigger `StateController.refresh()`
-- [ ] **CMD-02**: `gsd.openRoadmap` — open `.planning/ROADMAP.md` in an editor tab (no-op with info message if absent)
-- [ ] **CMD-03**: `gsd.openState` — open `.planning/STATE.md` in an editor tab (no-op with info message if absent)
-- [ ] **CMD-04**: All commands appear in the Command Palette under a "GSD" category and are wired into the extension activation
+- [x] **CMD-01**: `gsd.refresh` — manually trigger `StateController.refresh()`
+- [x] **CMD-02**: `gsd.openRoadmap` — open `.planning/ROADMAP.md` in an editor tab (no-op with info message if absent)
+- [x] **CMD-03**: `gsd.openState` — open `.planning/STATE.md` in an editor tab (no-op with info message if absent)
+- [x] **CMD-04**: All commands appear in the Command Palette under a "GSD" category and are wired into the extension activation
 
 ### Configuration
 
@@ -132,10 +132,10 @@ Updated during roadmap creation.
 | STAT-05 | Phase 3 | Pending |
 | STAT-03 | Phase 4 | Complete |
 | STAT-04 | Phase 4 | Complete |
-| CMD-01 | Phase 4 | Pending |
-| CMD-02 | Phase 4 | Pending |
-| CMD-03 | Phase 4 | Pending |
-| CMD-04 | Phase 4 | Pending |
+| CMD-01 | Phase 4 | Complete |
+| CMD-02 | Phase 4 | Complete |
+| CMD-03 | Phase 4 | Complete |
+| CMD-04 | Phase 4 | Complete |
 | CFG-01 | Phase 4 | Pending |
 | CFG-02 | Phase 4 | Pending |
 | CFG-03 | Phase 4 | Pending |
