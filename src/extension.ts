@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { StateController } from './state/controller.js';
+import { buildOkTooltip, buildErrorTooltip } from './state/tooltip.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const item = vscode.window.createStatusBarItem(
@@ -18,6 +19,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const controller = new StateController(folder);
   context.subscriptions.push(controller);
 
+  item.command = 'gsd.openState';
+
   context.subscriptions.push(
     controller.onStateChanged(state => {
       if (lifecycle.disposed) return;
@@ -27,7 +30,7 @@ export function activate(context: vscode.ExtensionContext): void {
           const active = state.roadmap.phases.find(p => !p.done);
           const phase = active ? `Phase ${active.number}: ${active.name}` : 'All phases done';
           item.text = `$(pulse) ${milestone} › ${phase}`;
-          item.tooltip = undefined;
+          item.tooltip = buildOkTooltip(state.roadmap, state.state);
           break;
         }
         case 'no-project':
@@ -36,7 +39,7 @@ export function activate(context: vscode.ExtensionContext): void {
           break;
         case 'error':
           item.text = '$(error) GSD: Error';
-          item.tooltip = 'Error parsing GSD files';
+          item.tooltip = buildErrorTooltip(state.message);
           break;
       }
     })
