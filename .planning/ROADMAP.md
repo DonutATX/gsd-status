@@ -111,7 +111,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Developer runs `code --install-extension gsd-status-*.vsix` and the extension installs and activates cleanly in VS Code stable
   3. Developer runs `vsce ls` and confirms packaged size is under 500 KB with no source files, test files, or planning docs included
   4. README.md documents install steps, a feature overview, and includes a screenshot of the status bar and tree panel
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 06-01-PLAN.md — Packaging toolchain: install @vscode/vsce, fix scripts + .vscodeignore, build verified .vsix
+- [ ] 06-02-PLAN.md — Documentation: CHANGELOG.md v0.1.0 + expanded README.md with install/features/settings
 
 ## Progress
 
