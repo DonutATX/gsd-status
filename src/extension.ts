@@ -27,10 +27,12 @@ export function activate(context: vscode.ExtensionContext): void {
           const active = state.roadmap.phases.find(p => !p.done);
           const phase = active ? `Phase ${active.number}: ${active.name}` : 'All phases done';
           item.text = `$(pulse) ${milestone} › ${phase}`;
+          item.tooltip = undefined;
           break;
         }
         case 'no-project':
           item.text = 'GSD: No project';
+          item.tooltip = undefined;
           break;
         case 'error':
           item.text = '$(error) GSD: Error';
