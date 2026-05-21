@@ -78,7 +78,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Developer runs `GSD: Open State` and `GSD: Refresh` from the Command Palette and both behave correctly
   4. Developer changes gsd.refreshIntervalSeconds in VS Code settings and the periodic timer restarts at the new interval without a window reload
   5. All GSD commands are discoverable in the Command Palette under the "GSD" category
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 04-01-PLAN.md — TDD relativeTime() + MarkdownString tooltip builders, wired into the status bar (STAT-03, STAT-04)
+- [ ] 04-02-PLAN.md — Three Command Palette commands under the "GSD" category (CMD-01..04)
+- [ ] 04-03-PLAN.md — Two configuration settings + live timer restart via onDidChangeConfiguration (CFG-01..03)
 **UI hint**: yes
 
 ### Phase 5: Side Panel TreeView
@@ -117,6 +120,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Scaffold + Minimal Status Bar | 2/2 | Complete   | 2026-05-20 |
 | 2. Parsers + Tests | 0/2 | Not started | - |
 | 3. StateController + File Watching | 2/2 | Complete   | 2026-05-21 |
-| 4. Tooltip, Commands + Configuration | 0/TBD | Not started | - |
+| 4. Tooltip, Commands + Configuration | 0/3 | Not started | - |
 | 5. Side Panel TreeView | 0/TBD | Not started | - |
 | 6. Packaging + Distribution | 0/TBD | Not started | - |
