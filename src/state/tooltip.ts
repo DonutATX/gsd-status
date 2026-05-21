@@ -29,8 +29,14 @@ export function buildOkTooltip(roadmap: RoadmapData, state: StateData): vscode.M
     const abs = state.lastEntry.timestamp ?? state.lastUpdated ?? '';
     ms.appendMarkdown(`\n---\n\n`);
     ms.appendMarkdown(`**Last Entry**\n`);
-    ms.appendMarkdown(`_${rel}_ — \`${abs}\`\n`);
-    ms.appendMarkdown(state.lastEntry.text);
+    // WR-03: only render the absolute-timestamp code span when a timestamp
+    // exists; otherwise abs is '' and would produce a stray empty `` span.
+    const tail = abs ? ` — \`${abs}\`` : '';
+    ms.appendMarkdown(`_${rel}_${tail}\n`);
+    // WR-02: STATE.md entry text is user-controlled data, not markup. Use
+    // appendText so markdown syntax (headings, fences, links) is escaped and
+    // rendered literally instead of breaking the tooltip layout.
+    ms.appendText(state.lastEntry.text);
   }
 
   return ms;
