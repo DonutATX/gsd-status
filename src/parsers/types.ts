@@ -38,4 +38,5 @@ export interface StateData {
   lastEntry?: StateEntry;
   lastUpdated?: string;
   status?: string;
+  recentEntries?: StateEntry[];
 }

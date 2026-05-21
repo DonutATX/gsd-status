@@ -45,7 +45,7 @@ export function parseState(text: string): StateData {
   }
 
   // Body scan.
-  let bodyLastActivity: string | undefined;
+  const bodyEntries: StateEntry[] = [];
   for (const line of lines) {
     const p = POSITION.exec(line);
     if (p && data.phaseNumber === undefined) {
@@ -54,13 +54,14 @@ export function parseState(text: string): StateData {
       continue;
     }
     const la = LAST_ACT.exec(line);
-    if (la && bodyLastActivity === undefined) {
-      bodyLastActivity = la[1];
+    if (la) {
+      bodyEntries.push(buildEntry(la[1]));
     }
   }
 
-  if (bodyLastActivity !== undefined) {
-    data.lastEntry = buildEntry(bodyLastActivity);
+  if (bodyEntries.length > 0) {
+    data.lastEntry = bodyEntries[0];
+    data.recentEntries = bodyEntries;
   } else {
     const fmLastActivity = fm.get('last_activity');
     if (fmLastActivity !== undefined) {
@@ -68,6 +69,7 @@ export function parseState(text: string): StateData {
       // frontmatter value if it ever widens to undefined. Avoids unsafe cast.
       const stripped = stripQuotes(fmLastActivity) ?? fmLastActivity;
       data.lastEntry = buildEntry(stripped);
+      data.recentEntries = [data.lastEntry];
     }
   }
 
