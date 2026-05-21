@@ -531,14 +531,14 @@ describe('debounce', () => {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does `.planning/{ROADMAP,STATE}.md` brace-glob fire for both files on Windows?**
+1. **RESOLVED: Does `.planning/{ROADMAP,STATE}.md` brace-glob fire for both files on Windows?**
    - What we know: `RelativePattern.pattern` doc example shows `*.{ts,js}` — same brace syntax [VERIFIED: @types/vscode]. The File Watcher Internals wiki does not explicitly cover brace-glob expansion behavior.
    - What's unclear: Whether VS Code's watcher backend expands brace globs or passes them to the OS watcher verbatim (Windows ReadDirectoryChangesW does not understand brace syntax).
    - Recommendation: Plan for a two-watcher fallback (`ROADMAP.md` + `STATE.md` individually with `?` or `*` wildcards) if integration tests show the brace glob missing events on Windows. Use a single flag constant so the switch is one line.
 
-2. **Should `refresh()` distinguish ENOENT on ROADMAP.md vs STATE.md?**
+2. **RESOLVED: Should `refresh()` distinguish ENOENT on ROADMAP.md vs STATE.md?**
    - What we know: CONTEXT.md says `refresh()` reads both atomically; ENOENT likely means `.planning/` or one file is absent.
    - What's unclear: Whether a missing STATE.md (but present ROADMAP.md) should be `no-project` or `ok` with partial data.
    - Recommendation: Treat ENOENT for either file as `no-project` (consistent with WSP-01 which keys off ROADMAP.md presence). This matches Phase 1 behavior.
