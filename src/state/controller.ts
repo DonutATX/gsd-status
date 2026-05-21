@@ -1,19 +1,25 @@
 /**
- * StateController — pure-Node implementation (zero vscode imports in Plan 03-01).
+ * StateController — vscode-integrated implementation (Plan 03-02).
+ *
+ * Owns a debounced FileSystemWatcher + 30-second periodic fallback timer.
+ * Emits GsdState events via vscode.EventEmitter<GsdState> (replaces hand-rolled
+ * listener array from Plan 03-01).
  *
  * Reads ROADMAP.md and STATE.md atomically via Promise.all, emits a single GsdState
  * event per refresh() call. All I/O and parse errors are caught and emitted as
  * kind:'error' or kind:'no-project' — refresh() never rejects (WSP-02, WSP-03, WSP-04).
- *
- * Plan 03-02 swaps the hand-rolled listener array for vscode.EventEmitter and wires
- * the file watcher + debounce.
  */
 
+import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { parseRoadmap } from '../parsers/roadmap.js';
 import { parseState } from '../parsers/state.js';
+import { debounce } from './debounce.js';
 import type { GsdState } from './types.js';
+
+const DEBOUNCE_MS = 300;
+const REFRESH_INTERVAL_MS = 30_000;
 
 /**
  * Default file reader: reads ROADMAP.md and STATE.md from base using Promise.all.
@@ -26,39 +32,36 @@ async function defaultReadFiles(base: string): Promise<{ roadmapText: string; st
   return { roadmapText, stateText };
 }
 
-export class StateController {
-  private readonly _folder: { uri: { fsPath: string } } | undefined;
+export class StateController implements vscode.Disposable {
+  private readonly _emitter = new vscode.EventEmitter<GsdState>();
+  readonly onStateChanged: vscode.Event<GsdState> = this._emitter.event;
+
+  private readonly _folder: vscode.WorkspaceFolder | { uri: { fsPath: string } } | undefined;
   private readonly _readFiles: (base: string) => Promise<{ roadmapText: string; stateText: string }>;
-  private _listeners: Array<(s: GsdState) => void> = [];
+  private readonly _watcher: vscode.FileSystemWatcher | undefined;
+  private readonly _timerDisposable: vscode.Disposable;
 
   constructor(
-    folder: { uri: { fsPath: string } } | undefined,
+    folder: vscode.WorkspaceFolder | { uri: { fsPath: string } } | undefined,
     readFiles?: (base: string) => Promise<{ roadmapText: string; stateText: string }>,
   ) {
     this._folder = folder;
     this._readFiles = readFiles ?? defaultReadFiles;
-  }
 
-  /**
-   * Subscribe to state change events.
-   * Returns a disposer that removes the listener when called.
-   */
-  onStateChanged(listener: (s: GsdState) => void): { dispose(): void } {
-    this._listeners.push(listener);
-    return {
-      dispose: () => {
-        const idx = this._listeners.indexOf(listener);
-        if (idx !== -1) {
-          this._listeners.splice(idx, 1);
-        }
-      },
-    };
-  }
-
-  private _emit(state: GsdState): void {
-    for (const listener of this._listeners) {
-      listener(state);
+    if (folder) {
+      const pattern = new vscode.RelativePattern(
+        folder as vscode.WorkspaceFolder,
+        '.planning/{ROADMAP,STATE}.md',
+      );
+      this._watcher = vscode.workspace.createFileSystemWatcher(pattern);
+      const debouncedRefresh = debounce(() => void this.refresh(), DEBOUNCE_MS);
+      this._watcher.onDidChange(debouncedRefresh);
+      this._watcher.onDidCreate(debouncedRefresh);
+      this._watcher.onDidDelete(debouncedRefresh);
     }
+
+    const id = setInterval(() => void this.refresh(), REFRESH_INTERVAL_MS);
+    this._timerDisposable = { dispose: () => clearInterval(id) };
   }
 
   /**
@@ -67,7 +70,7 @@ export class StateController {
    */
   async refresh(): Promise<void> {
     if (!this._folder) {
-      this._emit({ kind: 'no-project' });
+      this._emitter.fire({ kind: 'no-project' });
       return;
     }
 
@@ -77,13 +80,13 @@ export class StateController {
       const { roadmapText, stateText } = await this._readFiles(base);
       const roadmap = parseRoadmap(roadmapText);
       const state = parseState(stateText);
-      this._emit({ kind: 'ok', roadmap, state });
+      this._emitter.fire({ kind: 'ok', roadmap, state });
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
       if (code === 'ENOENT') {
-        this._emit({ kind: 'no-project' });
+        this._emitter.fire({ kind: 'no-project' });
       } else {
-        this._emit({
+        this._emitter.fire({
           kind: 'error',
           message: err instanceof Error ? err.message : String(err),
         });
@@ -92,7 +95,8 @@ export class StateController {
   }
 
   dispose(): void {
-    // Watcher/timer wiring added in Plan 02
-    this._listeners = [];
+    this._watcher?.dispose();
+    this._timerDisposable.dispose();
+    this._emitter.dispose();
   }
 }
