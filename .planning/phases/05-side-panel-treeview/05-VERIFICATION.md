@@ -1,9 +1,10 @@
 ---
 phase: 05-side-panel-treeview
 verified: 2026-05-21T00:00:00Z
-status: human_needed
+status: passed
 score: 11/11 must-haves verified
 overrides_applied: 0
+human_verification_completed: 2026-05-21 — all 6 EDH items passed; phase-number label bug found and fixed
 human_verification:
   - test: "Visual Activity Bar panel inspection"
     expected: |
