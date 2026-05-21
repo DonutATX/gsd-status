@@ -80,6 +80,17 @@ export class StateController implements vscode.Disposable {
       const { roadmapText, stateText } = await this._readFiles(base);
       const roadmap = parseRoadmap(roadmapText);
       const state = parseState(stateText);
+      // The Phase 2 parsers are total — they never throw, even on gibberish
+      // (PARS-03). A file that yields zero phases is not a recognizable GSD
+      // roadmap, so surface it as an error rather than a degenerate ok state
+      // that would render as "All phases done" (success criterion 3 / WSP-04).
+      if (roadmap.phases.length === 0) {
+        this._emitter.fire({
+          kind: 'error',
+          message: 'ROADMAP.md has no recognizable GSD phases',
+        });
+        return;
+      }
       this._emitter.fire({ kind: 'ok', roadmap, state });
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;

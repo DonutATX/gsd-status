@@ -81,6 +81,20 @@ describe('WSP-04 — errors emitted as state, refresh never throws', () => {
     }
   });
 
+  it('unparseable path: gibberish ROADMAP.md (zero phases) emits kind:error', async () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: 'asdf gibberish not a roadmap', stateText: VALID_STATE }),
+    );
+    const eventPromise = collectOne(ctrl);
+    await assert.doesNotReject(() => ctrl.refresh());
+    const state = await eventPromise;
+    assert.equal(state.kind, 'error', `expected error for zero-phase roadmap, got ${state.kind}`);
+    if (state.kind === 'error') {
+      assert.match(state.message, /no recognizable GSD phases/);
+    }
+  });
+
   it('I/O path: readFiles rejection with non-ENOENT emits kind:error', async () => {
     const err = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
     err.code = 'EACCES';
