@@ -11,7 +11,28 @@
 
 import * as vscode from 'vscode';
 import type { GsdState } from '../state/types.js';
+import type { StateEntry } from '../parsers/types.js';
 import type { GsdTreeItem } from './items.js';
+
+/**
+ * WR-04: build a content-stable id fragment for a Recent Activity entry.
+ *
+ * Uses the entry timestamp plus a short FNV-1a hash of the raw line, so the
+ * id tracks the entry's content rather than its position in the array. Two
+ * different entries are extremely unlikely to collide; the same entry always
+ * yields the same id across refreshes, which is what VS Code keys reveal and
+ * selection on.
+ */
+function activityId(entry: StateEntry): string {
+  let hash = 0x811c9dc5;
+  const raw = entry.raw;
+  for (let i = 0; i < raw.length; i++) {
+    hash ^= raw.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  const slug = (hash >>> 0).toString(16);
+  return `${entry.timestamp ?? ''}-${slug}`;
+}
 
 export class GsdTreeProvider
   implements vscode.TreeDataProvider<GsdTreeItem>, vscode.Disposable
@@ -94,7 +115,11 @@ export class GsdTreeProvider
 
       case 'activity': {
         const item = new vscode.TreeItem(element.entry.text, vscode.TreeItemCollapsibleState.None);
-        item.id = `activity-${element.index}`;
+        // WR-04: derive a content-stable id from the entry itself, not the
+        // array position. Positional ids (`activity-${index}`) shift whenever
+        // STATE.md gains an entry, so VS Code's selection/reveal would jump to
+        // an unrelated line after a refresh.
+        item.id = `activity-${activityId(element.entry)}`;
         item.iconPath = new vscode.ThemeIcon('pulse');
         item.description = element.entry.timestamp;
         item.command = {

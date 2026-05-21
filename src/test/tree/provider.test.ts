@@ -512,4 +512,34 @@ describe('GsdTreeProvider — update() and onDidChangeTreeData (PANL-07)', () =>
     const item = provider.getTreeItem(sectionNode);
     assert.equal(item.id, 'recent-activity-section');
   });
+
+  it('activity ids are content-stable when a new entry shifts indices (WR-04)', () => {
+    // Collect the id of the oldest entry under the original state.
+    provider.update(makeOkState());
+    const section = (provider.getChildren(undefined) as GsdTreeItem[])[0];
+    const before = provider.getChildren(section) as GsdTreeItem[];
+    const oldestBefore = before[before.length - 1];
+    const idBefore = provider.getTreeItem(oldestBefore).id;
+
+    // Prepend a brand-new entry — every existing entry's index now shifts.
+    const shifted = makeOkState();
+    if (shifted.kind === 'ok') {
+      shifted.state.recentEntries = [
+        { text: 'Newest entry', timestamp: '2026-05-21', raw: 'Last activity: 2026-05-21 — Newest entry' },
+        ...(shifted.state.recentEntries ?? []),
+      ];
+    }
+    provider.update(shifted);
+    const sectionAfter = (provider.getChildren(undefined) as GsdTreeItem[])[0];
+    const after = provider.getChildren(sectionAfter) as GsdTreeItem[];
+    const oldestAfter = after[after.length - 1];
+    const idAfter = provider.getTreeItem(oldestAfter).id;
+
+    assert.equal(idAfter, idBefore,
+      'the same entry must keep its id even after indices shift');
+
+    // Distinct entries must still get distinct ids.
+    const ids = after.map(n => provider.getTreeItem(n).id);
+    assert.equal(new Set(ids).size, ids.length, 'activity ids must be unique per entry');
+  });
 });
