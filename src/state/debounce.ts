@@ -7,13 +7,22 @@
 
 /**
  * Creates a debounced function that delays calling `fn` until `ms` milliseconds
- * have elapsed since the last invocation.
+ * have elapsed since the last invocation. Rapid repeated calls within the window
+ * coalesce into a single invocation (WAT-02).
  *
  * @param fn - The function to debounce.
  * @param ms - The delay in milliseconds.
  * @returns A debounced wrapper around `fn`.
  */
 export function debounce(fn: () => void, ms: number): () => void {
-  // Stub: returns fn unchanged. Real implementation added in Task 1.
-  return fn;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return function debounced() {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      timer = undefined;
+      fn();
+    }, ms);
+  };
 }
