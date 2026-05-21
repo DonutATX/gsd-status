@@ -48,9 +48,15 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }
 
+  // WR-03: a single shared handler for the refresh behavior. Two command ids
+  // (gsd.refresh, gsd.refreshTree) intentionally exist — gsd.refreshTree backs
+  // the view/title toolbar icon — but they must not carry duplicated bodies,
+  // or a future change to one will silently drift from the other.
+  const refreshHandler = (): void => { void controller.refresh(); };
+
   // Register all commands BEFORE assigning item.command (anti-pattern: assign before register).
   context.subscriptions.push(
-    vscode.commands.registerCommand('gsd.refresh', () => { void controller.refresh(); }),
+    vscode.commands.registerCommand('gsd.refresh', refreshHandler),
     vscode.commands.registerCommand('gsd.openRoadmap', (line?: number) => { void openFile('ROADMAP.md', line); }),
     vscode.commands.registerCommand('gsd.openState', () => { void openFile('STATE.md'); }),
   );
@@ -68,8 +74,11 @@ export function activate(context: vscode.ExtensionContext): void {
   });
   context.subscriptions.push(treeView, provider);
 
+  // gsd.refreshTree is a distinct id solely so package.json can place a
+  // toolbar icon in the tree view/title; its handler is the same shared
+  // refreshHandler used by gsd.refresh (WR-03 — no duplicated body).
   context.subscriptions.push(
-    vscode.commands.registerCommand('gsd.refreshTree', () => { void controller.refresh(); }),
+    vscode.commands.registerCommand('gsd.refreshTree', refreshHandler),
   );
 
   // Second onStateChanged subscription: drive setContext + provider update.
