@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: StateController + File Watching** - Live state management with FileSystemWatcher, debounce, and periodic refresh fallback wired to the status bar (completed 2026-05-21)
 - [x] **Phase 4: Tooltip, Commands + Configuration** - Complete status bar surface with hover tooltip, user commands in the Command Palette, and configurable settings (completed 2026-05-21)
 - [x] **Phase 5: Side Panel TreeView** - Activity Bar side panel listing all phases with active phase highlight, recent activity, and welcome view (completed 2026-05-21)
-- [ ] **Phase 6: Packaging + Distribution** - Distributable .vsix build with verified size, compatibility, and documented install instructions
+- [x] **Phase 6: Packaging + Distribution** - Distributable .vsix build with verified size, compatibility, and documented install instructions (completed 2026-05-21)
 
 ## Phase Details
 
@@ -113,7 +113,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. README.md documents install steps, a feature overview, and includes a screenshot of the status bar and tree panel
 **Plans**: 2 plans
 - [x] 06-01-PLAN.md — Packaging toolchain: install @vscode/vsce, fix scripts + .vscodeignore, build verified .vsix
-- [ ] 06-02-PLAN.md — Documentation: CHANGELOG.md v0.1.0 + expanded README.md with install/features/settings
+- [x] 06-02-PLAN.md — Documentation: CHANGELOG.md v0.1.0 + expanded README.md with install/features/settings
 
 ## Progress
 
@@ -127,4 +127,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. StateController + File Watching | 2/2 | Complete   | 2026-05-21 |
 | 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
 | 5. Side Panel TreeView | 3/3 | Complete   | 2026-05-21 |
-| 6. Packaging + Distribution | 1/2 | In Progress|  |
+| 6. Packaging + Distribution | 2/2 | Complete   | 2026-05-21 |

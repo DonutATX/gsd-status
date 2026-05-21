@@ -71,7 +71,7 @@
 - [x] **PKG-01**: `npm run package` produces a `.vsix` via `@vscode/vsce` that installs cleanly in VS Code stable
 - [x] **PKG-02**: `vsce ls` output reviewed; packaged size <500 KB
 - [x] **PKG-03**: Compatibility verified on the minimum declared `engines.vscode` version
-- [ ] **PKG-04**: README.md documents install (`code --install-extension <vsix>`), feature overview, and screenshot of status bar + tree
+- [x] **PKG-04**: README.md documents install (`code --install-extension <vsix>`), feature overview, and screenshot of status bar + tree
 
 ## v2 Requirements
 
@@ -149,7 +149,7 @@ Updated during roadmap creation.
 | PKG-01 | Phase 6 | Complete |
 | PKG-02 | Phase 6 | Complete |
 | PKG-03 | Phase 6 | Complete |
-| PKG-04 | Phase 6 | Pending |
+| PKG-04 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 36 total
