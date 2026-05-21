@@ -135,7 +135,11 @@ export class StateController implements vscode.Disposable {
    */
   setRefreshInterval(seconds: number): void {
     if (this._disposed) return;
-    const ms = Math.max(5, seconds) * 1000; // defensive clamp; minimum 5s
+    // CR-01: Math.max(5, NaN) returns NaN, and setInterval(fn, NaN) is treated
+    // as a 0ms interval — defeating the clamp and causing a busy-loop. Coerce
+    // any non-finite input to the 30s default before clamping.
+    const safe = Number.isFinite(seconds) ? seconds : 30;
+    const ms = Math.max(5, safe) * 1000; // defensive clamp; finite + minimum 5s
     this._timerDisposable.dispose(); // clear old interval
     const safeRefresh = (): void => {
       this.refresh().catch((e) => console.error('GSD refresh failed', e));
