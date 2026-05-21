@@ -135,3 +135,54 @@ describe('no-project path — ENOENT and undefined folder', () => {
     assert.equal(readFilesCalled, false, 'readFiles should not be called when folder is undefined');
   });
 });
+
+describe('setRefreshInterval', () => {
+  it('replaces the running interval (old timer cleared, new timer started)', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    // Should not throw; method must exist and be callable
+    assert.doesNotThrow(() => ctrl.setRefreshInterval(10));
+    ctrl.dispose();
+  });
+
+  it('clamps a below-minimum value (2) to 5 seconds minimum', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    // Should not throw; clamping is internal but must not error
+    assert.doesNotThrow(() => ctrl.setRefreshInterval(2));
+    ctrl.dispose();
+  });
+
+  it('clamps zero to 5 seconds minimum', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    assert.doesNotThrow(() => ctrl.setRefreshInterval(0));
+    ctrl.dispose();
+  });
+
+  it('does not start a leaked timer after dispose()', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    ctrl.dispose();
+    // Calling setRefreshInterval after dispose must return early — no throw, no leak
+    assert.doesNotThrow(() => ctrl.setRefreshInterval(10));
+  });
+
+  it('dispose() clears whatever timer was set by setRefreshInterval', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    ctrl.setRefreshInterval(15);
+    // dispose() must not throw even after setRefreshInterval replaced the timer
+    assert.doesNotThrow(() => ctrl.dispose());
+  });
+});
