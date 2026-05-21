@@ -65,10 +65,37 @@ class MarkdownString {
   get value(): string { return this._value; }
 }
 
+// Minimal TreeItem stub for tree provider tests.
+class TreeItem {
+  id?: string;
+  label?: string;
+  description?: string;
+  tooltip?: string;
+  iconPath?: unknown;
+  collapsibleState?: number;
+  command?: { command: string; title: string; arguments?: unknown[] };
+  contextValue?: string;
+  constructor(labelOrUri: string, collapsibleState?: number) {
+    this.label = labelOrUri;
+    this.collapsibleState = collapsibleState ?? 0;
+  }
+}
+
+// Minimal ThemeIcon stub.
+class ThemeIcon {
+  constructor(public readonly id: string) {}
+}
+
+// TreeItemCollapsibleState constants.
+const TreeItemCollapsibleState = { None: 0, Collapsed: 1, Expanded: 2 };
+
 module.exports = {
   EventEmitter,
   RelativePattern,
   MarkdownString,
+  TreeItem,
+  ThemeIcon,
+  TreeItemCollapsibleState,
   workspace: {
     createFileSystemWatcher: (_pattern: RelativePattern) => new FileSystemWatcher(),
     workspaceFolders: undefined,
@@ -90,11 +117,14 @@ module.exports = {
     }),
     showTextDocument: async (_doc: unknown): Promise<void> => undefined,
     showInformationMessage: (_msg: string): void => undefined,
+    createTreeView: (_id: string, _opts: unknown): { dispose(): void } => ({ dispose: () => undefined }),
+    registerTreeDataProvider: (_id: string, _p: unknown): { dispose(): void } => ({ dispose: () => undefined }),
   },
   commands: {
     registerCommand: (_id: string, _cb: () => void): { dispose(): void } => {
       return { dispose: () => undefined };
     },
+    executeCommand: async (_id: string, ..._args: unknown[]): Promise<unknown> => undefined,
   },
   Uri: {
     file: (p: string): { fsPath: string } => ({ fsPath: p }),
