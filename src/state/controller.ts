@@ -41,6 +41,13 @@ export class StateController implements vscode.Disposable {
   private readonly _watcher: vscode.FileSystemWatcher | undefined;
   private readonly _timerDisposable: vscode.Disposable;
 
+  /**
+   * Monotonic refresh counter. Each refresh() call captures its own generation;
+   * if a newer refresh starts before an older one finishes its await, the older
+   * one drops its result so it cannot emit stale state out of order (WR-01).
+   */
+  private _generation = 0;
+
   constructor(
     folder: vscode.WorkspaceFolder | { uri: { fsPath: string } } | undefined,
     readFiles?: (base: string) => Promise<{ roadmapText: string; stateText: string }>,
@@ -69,6 +76,10 @@ export class StateController implements vscode.Disposable {
    * Never rejects — all errors are caught and emitted as kind:'error' or kind:'no-project'.
    */
   async refresh(): Promise<void> {
+    // Capture this refresh's generation. If a newer refresh starts during our
+    // await, our generation will be stale and we drop our result (WR-01).
+    const gen = ++this._generation;
+
     if (!this._folder) {
       this._emitter.fire({ kind: 'no-project' });
       return;
@@ -78,6 +89,7 @@ export class StateController implements vscode.Disposable {
 
     try {
       const { roadmapText, stateText } = await this._readFiles(base);
+      if (gen !== this._generation) return; // superseded by a newer refresh
       const roadmap = parseRoadmap(roadmapText);
       const state = parseState(stateText);
       // The Phase 2 parsers are total — they never throw, even on gibberish
@@ -93,6 +105,7 @@ export class StateController implements vscode.Disposable {
       }
       this._emitter.fire({ kind: 'ok', roadmap, state });
     } catch (err) {
+      if (gen !== this._generation) return; // superseded by a newer refresh
       const code = (err as NodeJS.ErrnoException).code;
       if (code === 'ENOENT') {
         this._emitter.fire({ kind: 'no-project' });
