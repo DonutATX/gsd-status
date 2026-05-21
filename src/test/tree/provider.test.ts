@@ -361,6 +361,35 @@ describe('GsdTreeProvider — getChildren for Recent Activity section (PANL-04)'
     p.dispose();
   });
 
+  it('setRecentCount clamps zero / negative / non-integer to a sane value (WR-02)', () => {
+    // 0 → fallback 5: all 3 fixture entries shown.
+    const pZero = new GsdTreeProvider();
+    pZero.setRecentCount(0);
+    pZero.update(makeOkState());
+    const zeroSection = (pZero.getChildren(undefined) as GsdTreeItem[])[0];
+    assert.equal((pZero.getChildren(zeroSection) as GsdTreeItem[]).length, 3,
+      '0 must fall back, not show an empty panel');
+    pZero.dispose();
+
+    // negative → fallback 5: slice(0, -1) would have dropped the last entry.
+    const pNeg = new GsdTreeProvider();
+    pNeg.setRecentCount(-1);
+    pNeg.update(makeOkState());
+    const negSection = (pNeg.getChildren(undefined) as GsdTreeItem[])[0];
+    assert.equal((pNeg.getChildren(negSection) as GsdTreeItem[]).length, 3,
+      'negative must fall back, not drop entries');
+    pNeg.dispose();
+
+    // float → floored: 2.7 becomes 2.
+    const pFloat = new GsdTreeProvider();
+    pFloat.setRecentCount(2.7);
+    pFloat.update(makeOkState());
+    const floatSection = (pFloat.getChildren(undefined) as GsdTreeItem[])[0];
+    assert.equal((pFloat.getChildren(floatSection) as GsdTreeItem[]).length, 2,
+      'a float must be floored to an integer limit');
+    pFloat.dispose();
+  });
+
   it('section returns placeholder when recentEntries is empty/undefined', () => {
     const p = new GsdTreeProvider();
     p.update({

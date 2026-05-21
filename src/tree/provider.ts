@@ -33,9 +33,14 @@ export class GsdTreeProvider
   /**
    * Set the maximum number of Recent Activity entries to show.
    * Called by extension.ts using the gsd.recentActivityCount setting.
+   *
+   * WR-02: package.json declares "minimum": 1, but VS Code does not enforce
+   * it on programmatic reads — a hand-edited settings.json can supply 0, a
+   * negative, or a float. Clamp to a positive integer (fall back to 5) so a
+   * bad value never produces a confusing empty/short panel.
    */
   setRecentCount(n: number): void {
-    this._recentCount = n;
+    this._recentCount = Number.isFinite(n) && n >= 1 ? Math.floor(n) : 5;
   }
 
   // ---------------------------------------------------------------------------
