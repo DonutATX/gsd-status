@@ -1,10 +1,11 @@
 ---
 phase: 04-tooltip-commands-configuration
 verified: 2026-05-21T00:00:00Z
-status: human_needed
+status: passed
 score: 9/9 must-haves verified
 overrides_applied: 0
-re_verification: false
+re_verification: true
+human_verification_completed: 2026-05-21 — all 5 EDH items passed
 human_verification:
   - test: "Hover status bar item in Extension Development Host against ../gsd-test workspace"
     expected: "Tooltip shows milestone name, active phase name + goal, and the most recent STATE.md entry with relative + absolute timestamp"
