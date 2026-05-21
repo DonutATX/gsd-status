@@ -102,6 +102,10 @@ describe('activate() — command registration', () => {
   it('registers a command with id "gsd.openState"', () => {
     assert.ok(commandMap.has('gsd.openState'), 'expected gsd.openState to be registered');
   });
+
+  it('registers a command with id "gsd.refreshTree" (PANL-06)', () => {
+    assert.ok(commandMap.has('gsd.refreshTree'), 'expected gsd.refreshTree to be registered');
+  });
 });
 
 describe('activate() — command callbacks', () => {
