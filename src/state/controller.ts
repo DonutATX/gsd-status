@@ -55,19 +55,26 @@ export class StateController implements vscode.Disposable {
     this._folder = folder;
     this._readFiles = readFiles ?? defaultReadFiles;
 
+    // Defense-in-depth (WR-02): refresh() is contracted never to reject, but
+    // attach a .catch so any future regression is logged rather than becoming
+    // a silent unhandled rejection that crashes the extension host.
+    const safeRefresh = (): void => {
+      this.refresh().catch((e) => console.error('GSD refresh failed', e));
+    };
+
     if (folder) {
       const pattern = new vscode.RelativePattern(
         folder as vscode.WorkspaceFolder,
         '.planning/{ROADMAP,STATE}.md',
       );
       this._watcher = vscode.workspace.createFileSystemWatcher(pattern);
-      const debouncedRefresh = debounce(() => void this.refresh(), DEBOUNCE_MS);
+      const debouncedRefresh = debounce(safeRefresh, DEBOUNCE_MS);
       this._watcher.onDidChange(debouncedRefresh);
       this._watcher.onDidCreate(debouncedRefresh);
       this._watcher.onDidDelete(debouncedRefresh);
     }
 
-    const id = setInterval(() => void this.refresh(), REFRESH_INTERVAL_MS);
+    const id = setInterval(safeRefresh, REFRESH_INTERVAL_MS);
     this._timerDisposable = { dispose: () => clearInterval(id) };
   }
 
