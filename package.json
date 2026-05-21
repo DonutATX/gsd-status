@@ -24,7 +24,26 @@
       { "command": "gsd.refresh",     "title": "Refresh",      "category": "GSD" },
       { "command": "gsd.openRoadmap", "title": "Open Roadmap", "category": "GSD" },
       { "command": "gsd.openState",   "title": "Open State",   "category": "GSD" }
-    ]
+    ],
+    "configuration": {
+      "title": "GSD Status",
+      "properties": {
+        "gsd.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "description": "Interval in seconds between automatic GSD file refreshes.",
+          "scope": "window"
+        },
+        "gsd.recentActivityCount": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Number of recent STATE.md entries to surface in the GSD side panel.",
+          "scope": "window"
+        }
+      }
+    }
   },
   "capabilities": {
     "untrustedWorkspaces": {
