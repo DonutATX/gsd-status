@@ -556,7 +556,7 @@ const TreeItemCollapsibleState = { None: 0, Collapsed: 1, Expanded: 2 };
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Real STATE.md log entry format for `recentEntries`**
    - What we know: `parseState` currently collects `Last activity:` lines; `StateData.lastEntry` works.
