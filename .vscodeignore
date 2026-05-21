@@ -18,3 +18,8 @@ tsconfig.json
 *.key
 credentials.json
 secrets.json
+.serena/**
+out/test/**
+CLAUDE.md
+.vscode-test.mjs
+.mocharc.cjs
