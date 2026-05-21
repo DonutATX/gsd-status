@@ -137,7 +137,12 @@ Use these entry points:
 Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
 <!-- GSD:workflow-end -->
 
+## Serena
 
+This project uses the Serena MCP toolkit. For code work, prefer Serena's semantic tools:
+- Read project memories first (`mem:core` is the entry point) before exploring from scratch.
+- Use symbolic tools (`get_symbols_overview`, `find_symbol`, `find_referencing_symbols`) instead of reading whole files.
+- Activate the project at session start; run `serena memories check` to verify memory references.
 
 <!-- GSD:profile-start -->
 ## Developer Profile
