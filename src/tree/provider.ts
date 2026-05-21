@@ -34,6 +34,27 @@ function activityId(entry: StateEntry): string {
   return `${entry.timestamp ?? ''}-${slug}`;
 }
 
+/**
+ * WR-01: assign each activity node a tree id, disambiguating any collisions.
+ *
+ * activityId() is a pure function of entry content, so two STATE.md activity
+ * lines with identical raw text produce the identical id. VS Code requires
+ * TreeItem.id to be unique within the tree — duplicate ids cause unpredictable
+ * selection/reveal and can drop nodes. We append a `#N` counter ONLY to the
+ * 2nd+ occurrence of a colliding id, so the common case (every raw differs)
+ * keeps fully content-stable ids and only true duplicates pay the positional
+ * suffix. This preserves the PANL-07 expansion-preservation goal.
+ */
+function buildActivityIds(entries: readonly StateEntry[]): string[] {
+  const seen = new Map<string, number>();
+  return entries.map((entry) => {
+    const base = `activity-${activityId(entry)}`;
+    const count = seen.get(base) ?? 0;
+    seen.set(base, count + 1);
+    return count === 0 ? base : `${base}#${count}`;
+  });
+}
+
 export class GsdTreeProvider
   implements vscode.TreeDataProvider<GsdTreeItem>, vscode.Disposable
 {
@@ -115,11 +136,11 @@ export class GsdTreeProvider
 
       case 'activity': {
         const item = new vscode.TreeItem(element.entry.text, vscode.TreeItemCollapsibleState.None);
-        // WR-04: derive a content-stable id from the entry itself, not the
-        // array position. Positional ids (`activity-${index}`) shift whenever
-        // STATE.md gains an entry, so VS Code's selection/reveal would jump to
-        // an unrelated line after a refresh.
-        item.id = `activity-${activityId(element.entry)}`;
+        // WR-04 / WR-01: the id is a content-stable hash of the entry (not the
+        // array position), pre-computed in _getActivityChildren so that any
+        // colliding ids (identical raw text) can be disambiguated across the
+        // whole snapshot.
+        item.id = element.id;
         item.iconPath = new vscode.ThemeIcon('pulse');
         item.description = element.entry.timestamp;
         item.command = {
@@ -200,8 +221,10 @@ export class GsdTreeProvider
       return [{ kind: 'placeholder', label: 'No recent activity', id: 'no-activity-placeholder' }];
     }
 
-    return entries.slice(0, this._recentCount).map(
-      (entry, index): GsdTreeItem => ({ kind: 'activity', entry, index }),
+    const visible = entries.slice(0, this._recentCount);
+    const ids = buildActivityIds(visible);
+    return visible.map(
+      (entry, index): GsdTreeItem => ({ kind: 'activity', entry, index, id: ids[index] }),
     );
   }
 

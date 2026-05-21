@@ -542,4 +542,22 @@ describe('GsdTreeProvider — update() and onDidChangeTreeData (PANL-07)', () =>
     const ids = after.map(n => provider.getTreeItem(n).id);
     assert.equal(new Set(ids).size, ids.length, 'activity ids must be unique per entry');
   });
+
+  it('two activity entries with identical raw text receive distinct ids (WR-01)', () => {
+    const dupState = makeOkState();
+    if (dupState.kind === 'ok') {
+      const line = { text: 'Roadmap created', timestamp: '2026-05-21', raw: 'Last activity: 2026-05-21 — Roadmap created' };
+      // Two entries with byte-for-byte identical raw text.
+      dupState.state.recentEntries = [{ ...line }, { ...line }];
+    }
+    provider.update(dupState);
+    const section = (provider.getChildren(undefined) as GsdTreeItem[])[0];
+    const activity = provider.getChildren(section) as GsdTreeItem[];
+    assert.equal(activity.length, 2, 'both duplicate entries must be present');
+
+    const ids = activity.map(n => provider.getTreeItem(n).id);
+    assert.ok(ids.every(id => typeof id === 'string' && id.length > 0), 'each activity id must be a non-empty string');
+    assert.equal(new Set(ids).size, ids.length,
+      'content-identical entries must still receive distinct tree ids');
+  });
 });
