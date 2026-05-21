@@ -53,20 +53,46 @@ class RelativePattern {
   ) {}
 }
 
+// Minimal MarkdownString stub — stores appended markdown text.
+class MarkdownString {
+  private _value = '';
+  appendMarkdown(value: string): this { this._value += value; return this; }
+  get value(): string { return this._value; }
+}
+
 module.exports = {
   EventEmitter,
   RelativePattern,
+  MarkdownString,
   workspace: {
     createFileSystemWatcher: (_pattern: RelativePattern) => new FileSystemWatcher(),
     workspaceFolders: undefined,
+    getConfiguration: (_section?: string) => ({
+      get: <T>(_key: string, defaultValue: T): T => defaultValue,
+    }),
+    onDidChangeConfiguration: (_listener: () => void): { dispose(): void } => {
+      return { dispose: () => undefined };
+    },
+    openTextDocument: async (_uri: unknown): Promise<unknown> => ({}),
   },
   window: {
     createStatusBarItem: () => ({
       text: '',
-      tooltip: '',
+      tooltip: undefined as unknown,
+      command: undefined as string | undefined,
       show: () => undefined,
       dispose: () => undefined,
     }),
+    showTextDocument: async (_doc: unknown): Promise<void> => undefined,
+    showInformationMessage: (_msg: string): void => undefined,
+  },
+  commands: {
+    registerCommand: (_id: string, _cb: () => void): { dispose(): void } => {
+      return { dispose: () => undefined };
+    },
+  },
+  Uri: {
+    file: (p: string): { fsPath: string } => ({ fsPath: p }),
   },
   StatusBarAlignment: { Left: 1, Right: 2 },
   Disposable: { from: (..._d: Array<{ dispose(): void }>) => ({ dispose: () => undefined }) },
