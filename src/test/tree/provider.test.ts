@@ -232,6 +232,15 @@ describe('GsdTreeProvider — getTreeItem for phase nodes (PANL-02)', () => {
     assert.equal(item.id, `phase-${phaseNode.phase.number}`);
   });
 
+  it('phase TreeItem: label is prefixed with the phase number ("<number>: <name>")', () => {
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const phaseNodes = children.slice(1) as Extract<GsdTreeItem, { kind: 'phase' }>[];
+    for (const node of phaseNodes) {
+      const item = provider.getTreeItem(node);
+      assert.equal(item.label, `${node.phase.number}: ${node.phase.name}`);
+    }
+  });
+
   it('phase TreeItem: command is gsd.openRoadmap with headerLine argument', () => {
     const children = provider.getChildren(undefined) as GsdTreeItem[];
     const phaseNode = (children.slice(1) as Extract<GsdTreeItem, { kind: 'phase' }>[])[0];

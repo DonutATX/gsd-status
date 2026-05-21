@@ -103,7 +103,7 @@ export class GsdTreeProvider
         const state = isActive
           ? vscode.TreeItemCollapsibleState.Expanded
           : vscode.TreeItemCollapsibleState.Collapsed;
-        const item = new vscode.TreeItem(phase.name, state);
+        const item = new vscode.TreeItem(`${phase.number}: ${phase.name}`, state);
         item.id = `phase-${phase.number}`;
         if (isActive) {
           item.iconPath = new vscode.ThemeIcon('play');
