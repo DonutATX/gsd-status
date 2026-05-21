@@ -584,17 +584,17 @@ Step 2.6: SKIPPED — Phase 4 is a code-only change. No external CLIs, databases
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **StateController constructor signature for initial interval**
    - What we know: The constructor currently reads `REFRESH_INTERVAL_MS = 30_000` hardcoded.
    - What's unclear: Should the constructor call `workspace.getConfiguration` itself (simpler for callers, harder to test) or accept an `initialIntervalSeconds` parameter (testable, keeps vscode dep in extension.ts)?
-   - Recommendation: Accept `initialIntervalSeconds?: number` parameter. `activate()` reads the config and passes it in. Keeps StateController pure. Existing tests pass unchanged since they don't pass the parameter (defaults to 30).
+   - RESOLVED: Accept `initialIntervalSeconds?: number` parameter. `activate()` reads the config and passes it in. Keeps StateController pure. Existing tests pass unchanged since they don't pass the parameter (defaults to 30). Implemented in Plan 04-03 Task 2.
 
 2. **`dispose()` and `setRefreshInterval()` interaction**
    - What we know: `dispose()` calls `this._timerDisposable.dispose()`.
    - What's unclear: If `setRefreshInterval` is called after `dispose()`, it would start a new interval that never gets cleaned up.
-   - Recommendation: Add a `_disposed` guard (similar to the `lifecycle` guard in extension.ts) to `setRefreshInterval`: if already disposed, ignore the call.
+   - RESOLVED: Add a `_disposed` guard (similar to the `lifecycle` guard in extension.ts) to `setRefreshInterval`: if already disposed, ignore the call. Implemented in Plan 04-03 Task 2.
 
 ---
 
