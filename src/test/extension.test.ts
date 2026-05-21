@@ -154,3 +154,80 @@ describe('activate() — command callbacks', () => {
     );
   });
 });
+
+describe('activate() — gsd.openRoadmap honors line argument (WR-01)', () => {
+  let commandMap: CommandMap;
+  let restoreRegister: () => void;
+  let restoreShow: () => void;
+
+  before(() => {
+    // Provide a workspace folder so openFile reaches the showTextDocument path.
+    (vscode.workspace as { workspaceFolders: unknown }).workspaceFolders = [
+      { uri: { fsPath: '/tmp/ws' }, name: 'ws', index: 0 },
+    ];
+    commandMap = new Map();
+    restoreRegister = spyRegisterCommand(commandMap);
+    activate(fakeContextWithFolder() as unknown as import('vscode').ExtensionContext);
+  });
+
+  after(() => {
+    restoreRegister();
+    restoreShow();
+    (vscode.workspace as { workspaceFolders: undefined }).workspaceFolders = undefined;
+  });
+
+  // fakeContext() forces workspaceFolders = undefined, which defeats this
+  // suite. Use a context that preserves the folder set above.
+  function fakeContextWithFolder(): { subscriptions: { dispose(): void }[] } {
+    return { subscriptions: [] };
+  }
+
+  function spyShowTextDocument(): { selections: unknown[]; revealed: unknown[] } {
+    const rec = { selections: [] as unknown[], revealed: [] as unknown[] };
+    const original = (vscode.window as Record<string, unknown>).showTextDocument;
+    (vscode.window as Record<string, unknown>).showTextDocument = async (): Promise<unknown> => {
+      const editor = {
+        set selection(value: unknown) { rec.selections.push(value); },
+        get selection(): unknown { return undefined; },
+        revealRange: (range: unknown): void => { rec.revealed.push(range); },
+      };
+      return editor;
+    };
+    restoreShow = (): void => {
+      (vscode.window as Record<string, unknown>).showTextDocument = original;
+    };
+    return rec;
+  }
+
+  // The gsd.openRoadmap callback fires openFile() with `void` and returns
+  // synchronously, so the file-open promise runs detached. flush() drains
+  // enough microtask turns for that detached promise chain to settle.
+  async function flush(): Promise<void> {
+    for (let i = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
+  }
+
+  it('passes a valid line through to the editor selection and reveal', async () => {
+    const rec = spyShowTextDocument();
+    const cb = commandMap.get('gsd.openRoadmap') as (line?: number) => void;
+    assert.ok(cb, 'gsd.openRoadmap callback must be registered');
+    cb(11);
+    await flush();
+    assert.equal(rec.selections.length, 1, 'editor.selection should be set once for a valid line');
+    assert.equal(rec.revealed.length, 1, 'editor.revealRange should be called once for a valid line');
+    const sel = rec.selections[0] as { active: { line: number } };
+    assert.equal(sel.active.line, 11, 'selection must target the requested line');
+  });
+
+  it('ignores a negative / non-integer line argument (T-05-07)', async () => {
+    const rec = spyShowTextDocument();
+    const cb = commandMap.get('gsd.openRoadmap') as (line?: number) => void;
+    cb(-5);
+    cb(2.7);
+    cb();
+    await flush();
+    assert.equal(rec.selections.length, 0, 'invalid or absent line must not move the selection');
+    assert.equal(rec.revealed.length, 0, 'invalid or absent line must not reveal a range');
+  });
+});

@@ -89,6 +89,17 @@ class ThemeIcon {
 // TreeItemCollapsibleState constants.
 const TreeItemCollapsibleState = { None: 0, Collapsed: 1, Expanded: 2 };
 
+// Minimal Position / Selection / Range stubs for editor navigation.
+class Position {
+  constructor(public readonly line: number, public readonly character: number) {}
+}
+class Selection {
+  constructor(public readonly anchor: Position, public readonly active: Position) {}
+}
+class Range {
+  constructor(public readonly start: Position, public readonly end: Position) {}
+}
+
 module.exports = {
   EventEmitter,
   RelativePattern,
@@ -96,6 +107,9 @@ module.exports = {
   TreeItem,
   ThemeIcon,
   TreeItemCollapsibleState,
+  Position,
+  Selection,
+  Range,
   workspace: {
     createFileSystemWatcher: (_pattern: RelativePattern) => new FileSystemWatcher(),
     workspaceFolders: undefined,
@@ -115,7 +129,10 @@ module.exports = {
       show: () => undefined,
       dispose: () => undefined,
     }),
-    showTextDocument: async (_doc: unknown): Promise<void> => undefined,
+    showTextDocument: async (_doc: unknown): Promise<unknown> => ({
+      selection: undefined as unknown,
+      revealRange: (_range: unknown): void => undefined,
+    }),
     showInformationMessage: (_msg: string): void => undefined,
     createTreeView: (_id: string, _opts: unknown): { dispose(): void } => ({ dispose: () => undefined }),
     registerTreeDataProvider: (_id: string, _p: unknown): { dispose(): void } => ({ dispose: () => undefined }),

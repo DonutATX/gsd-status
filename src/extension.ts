@@ -27,7 +27,9 @@ export function activate(context: vscode.ExtensionContext): void {
     : undefined;
 
   // Helper: open a file inside .planning/, show info message if absent.
-  async function openFile(filename: string): Promise<void> {
+  // When `line` is a valid non-negative integer (threat T-05-07), the editor
+  // selection is moved there and the range revealed so the file scrolls to it.
+  async function openFile(filename: string, line?: number): Promise<void> {
     if (!planningBase) {
       vscode.window.showInformationMessage(`GSD: ${filename} not found in .planning/`);
       return;
@@ -35,7 +37,12 @@ export function activate(context: vscode.ExtensionContext): void {
     const uri = vscode.Uri.file(path.join(planningBase, filename));
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
-      await vscode.window.showTextDocument(doc);
+      const editor = await vscode.window.showTextDocument(doc);
+      if (typeof line === 'number' && Number.isInteger(line) && line >= 0) {
+        const pos = new vscode.Position(line, 0);
+        editor.selection = new vscode.Selection(pos, pos);
+        editor.revealRange(new vscode.Range(pos, pos));
+      }
     } catch {
       vscode.window.showInformationMessage(`GSD: ${filename} not found in .planning/`);
     }
@@ -44,7 +51,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register all commands BEFORE assigning item.command (anti-pattern: assign before register).
   context.subscriptions.push(
     vscode.commands.registerCommand('gsd.refresh', () => { void controller.refresh(); }),
-    vscode.commands.registerCommand('gsd.openRoadmap', () => { void openFile('ROADMAP.md'); }),
+    vscode.commands.registerCommand('gsd.openRoadmap', (line?: number) => { void openFile('ROADMAP.md', line); }),
     vscode.commands.registerCommand('gsd.openState', () => { void openFile('STATE.md'); }),
   );
 
