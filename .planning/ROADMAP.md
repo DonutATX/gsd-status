@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Parsers + Tests** - Pure, fully-tested parser modules for ROADMAP.md and STATE.md — no VS Code host required to run tests (completed 2026-05-20)
 - [x] **Phase 3: StateController + File Watching** - Live state management with FileSystemWatcher, debounce, and periodic refresh fallback wired to the status bar (completed 2026-05-21)
 - [x] **Phase 4: Tooltip, Commands + Configuration** - Complete status bar surface with hover tooltip, user commands in the Command Palette, and configurable settings (completed 2026-05-21)
-- [ ] **Phase 5: Side Panel TreeView** - Activity Bar side panel listing all phases with active phase highlight, recent activity, and welcome view
+- [x] **Phase 5: Side Panel TreeView** - Activity Bar side panel listing all phases with active phase highlight, recent activity, and welcome view (completed 2026-05-21)
 - [ ] **Phase 6: Packaging + Distribution** - Distributable .vsix build with verified size, compatibility, and documented install instructions
 
 ## Phase Details
@@ -98,7 +98,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 - [x] 05-01-PLAN.md — Extend STATE.md parser with recentEntries array (TDD)
 - [x] 05-02-PLAN.md — GsdTreeItem types + GsdTreeProvider with tree stubs (TDD)
-- [ ] 05-03-PLAN.md — Activity Bar contributions, SVG icon, welcome view, extension wiring
+- [x] 05-03-PLAN.md — Activity Bar contributions, SVG icon, welcome view, extension wiring
 **UI hint**: yes
 
 ### Phase 6: Packaging + Distribution
@@ -124,5 +124,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Parsers + Tests | 0/2 | Not started | - |
 | 3. StateController + File Watching | 2/2 | Complete   | 2026-05-21 |
 | 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
-| 5. Side Panel TreeView | 2/3 | In Progress|  |
+| 5. Side Panel TreeView | 3/3 | Complete   | 2026-05-21 |
 | 6. Packaging + Distribution | 0/TBD | Not started | - |
