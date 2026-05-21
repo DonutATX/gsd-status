@@ -62,9 +62,9 @@
 
 ### Configuration
 
-- [ ] **CFG-01**: `gsd.refreshIntervalSeconds` (number, default 30, min 5) — periodic refresh interval
-- [ ] **CFG-02**: `gsd.recentActivityCount` (number, default 5, min 1) — how many recent STATE.md entries to surface
-- [ ] **CFG-03**: Configuration changes apply without a window reload (listener re-creates timer / refreshes tree)
+- [x] **CFG-01**: `gsd.refreshIntervalSeconds` (number, default 30, min 5) — periodic refresh interval
+- [x] **CFG-02**: `gsd.recentActivityCount` (number, default 5, min 1) — how many recent STATE.md entries to surface
+- [x] **CFG-03**: Configuration changes apply without a window reload (listener re-creates timer / refreshes tree)
 
 ### Packaging & Distribution
 
@@ -136,9 +136,9 @@ Updated during roadmap creation.
 | CMD-02 | Phase 4 | Complete |
 | CMD-03 | Phase 4 | Complete |
 | CMD-04 | Phase 4 | Complete |
-| CFG-01 | Phase 4 | Pending |
-| CFG-02 | Phase 4 | Pending |
-| CFG-03 | Phase 4 | Pending |
+| CFG-01 | Phase 4 | Complete |
+| CFG-02 | Phase 4 | Complete |
+| CFG-03 | Phase 4 | Complete |
 | PANL-01 | Phase 5 | Pending |
 | PANL-02 | Phase 5 | Pending |
 | PANL-03 | Phase 5 | Pending |

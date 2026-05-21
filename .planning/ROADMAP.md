@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Scaffold + Minimal Status Bar** - Working extension scaffold that shows current phase name in VS Code status bar by reading a real ROADMAP.md (completed 2026-05-20)
 - [x] **Phase 2: Parsers + Tests** - Pure, fully-tested parser modules for ROADMAP.md and STATE.md — no VS Code host required to run tests (completed 2026-05-20)
 - [x] **Phase 3: StateController + File Watching** - Live state management with FileSystemWatcher, debounce, and periodic refresh fallback wired to the status bar (completed 2026-05-21)
-- [ ] **Phase 4: Tooltip, Commands + Configuration** - Complete status bar surface with hover tooltip, user commands in the Command Palette, and configurable settings
+- [x] **Phase 4: Tooltip, Commands + Configuration** - Complete status bar surface with hover tooltip, user commands in the Command Palette, and configurable settings (completed 2026-05-21)
 - [ ] **Phase 5: Side Panel TreeView** - Activity Bar side panel listing all phases with active phase highlight, recent activity, and welcome view
 - [ ] **Phase 6: Packaging + Distribution** - Distributable .vsix build with verified size, compatibility, and documented install instructions
 
@@ -81,7 +81,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 - [x] 04-01-PLAN.md — TDD relativeTime() + MarkdownString tooltip builders, wired into the status bar (STAT-03, STAT-04)
 - [x] 04-02-PLAN.md — Three Command Palette commands under the "GSD" category (CMD-01..04)
-- [ ] 04-03-PLAN.md — Two configuration settings + live timer restart via onDidChangeConfiguration (CFG-01..03)
+- [x] 04-03-PLAN.md — Two configuration settings + live timer restart via onDidChangeConfiguration (CFG-01..03)
 **UI hint**: yes
 
 ### Phase 5: Side Panel TreeView
@@ -120,6 +120,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Scaffold + Minimal Status Bar | 2/2 | Complete   | 2026-05-20 |
 | 2. Parsers + Tests | 0/2 | Not started | - |
 | 3. StateController + File Watching | 2/2 | Complete   | 2026-05-21 |
-| 4. Tooltip, Commands + Configuration | 2/3 | In Progress|  |
+| 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
 | 5. Side Panel TreeView | 0/TBD | Not started | - |
 | 6. Packaging + Distribution | 0/TBD | Not started | - |
