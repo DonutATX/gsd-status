@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'node:path';
 import { StateController } from './state/controller.js';
 import { buildOkTooltip, buildErrorTooltip } from './state/tooltip.js';
 
@@ -18,6 +19,33 @@ export function activate(context: vscode.ExtensionContext): void {
   const folder = vscode.workspace.workspaceFolders?.[0];
   const controller = new StateController(folder);
   context.subscriptions.push(controller);
+
+  // Compute planning base path from workspace folder (if any).
+  const planningBase = folder
+    ? path.join(folder.uri.fsPath, '.planning')
+    : undefined;
+
+  // Helper: open a file inside .planning/, show info message if absent.
+  async function openFile(filename: string): Promise<void> {
+    if (!planningBase) {
+      vscode.window.showInformationMessage(`GSD: ${filename} not found in .planning/`);
+      return;
+    }
+    const uri = vscode.Uri.file(path.join(planningBase, filename));
+    try {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(doc);
+    } catch {
+      vscode.window.showInformationMessage(`GSD: ${filename} not found in .planning/`);
+    }
+  }
+
+  // Register all commands BEFORE assigning item.command (anti-pattern: assign before register).
+  context.subscriptions.push(
+    vscode.commands.registerCommand('gsd.refresh', () => { void controller.refresh(); }),
+    vscode.commands.registerCommand('gsd.openRoadmap', () => { void openFile('ROADMAP.md'); }),
+    vscode.commands.registerCommand('gsd.openState', () => { void openFile('STATE.md'); }),
+  );
 
   item.command = 'gsd.openState';
 
