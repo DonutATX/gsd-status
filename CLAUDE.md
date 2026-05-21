@@ -118,6 +118,12 @@ Conventions not yet established. Will populate as patterns emerge during develop
 Architecture not yet mapped. Follow existing patterns found in the codebase.
 <!-- GSD:architecture-end -->
 
+## Testing & UAT
+
+- **Test workspace:** Manual UAT / Extension Development Host (F5) testing runs against the separate scratch workspace at `../gsd-test` (the dev repo itself cannot be opened in the EDH — same-folder lockout).
+- **Keep `../gsd-test` current:** After **every phase**, update `../gsd-test/.planning/` so its fixture files exercise whatever the new phase added. UAT is only accurate if the test workspace reflects what the extension now reads/does. For example, Phase 3 made the extension read both `ROADMAP.md` **and** `STATE.md`, so `../gsd-test/.planning/STATE.md` had to be added before the status bar would activate.
+- Recompile (`npm run compile`) before launching the EDH so `out/` is fresh.
+
 <!-- GSD:skills-start source:skills/ -->
 ## Project Skills
 
