@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Roadmap created. Phase 1 ready to plan.
-last_updated: "2026-05-21T19:34:24.967Z"
-last_activity: 2026-05-21 -- Phase 5 planning complete
+last_updated: "2026-05-21T19:45:39.865Z"
+last_activity: 2026-05-21
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 67
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** A developer running GSD in a project can glance at VS Code and immediately know: which milestone, which phase, and what just happened — without leaving the editor.
-**Current focus:** Phase 5 — side panel treeview
+**Current focus:** Phase 05 — Side Panel TreeView
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
+Phase: 05 (Side Panel TreeView) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-05-21 -- Phase 5 planning complete
+Last activity: 2026-05-21
 
-Progress: [██████████] 100%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [01-02]: Sync activate() with fire-and-forget updateStatusBar — never block host
 - [Phase ?]: 04-02
 - [Phase ?]: 04-03
+- [Phase 05-01]: Collect all LAST_ACT body matches into recentEntries array; first entry is lastEntry (additive, no breaking change)
 
 ### Pending Todos
 
@@ -89,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-21T16:38:33.406Z
+Last session: 2026-05-21T19:43:06.921Z
 Stopped at: Roadmap created. Phase 1 ready to plan.
 Resume file: None
