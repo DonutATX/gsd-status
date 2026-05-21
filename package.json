@@ -45,10 +45,27 @@
       }
     ],
     "commands": [
-      { "command": "gsd.refresh",     "title": "Refresh",           "category": "GSD" },
-      { "command": "gsd.openRoadmap", "title": "Open Roadmap",      "category": "GSD" },
-      { "command": "gsd.openState",   "title": "Open State",        "category": "GSD" },
-      { "command": "gsd.refreshTree", "title": "Refresh GSD tree",  "category": "GSD", "icon": "$(refresh)" }
+      {
+        "command": "gsd.refresh",
+        "title": "Refresh",
+        "category": "GSD"
+      },
+      {
+        "command": "gsd.openRoadmap",
+        "title": "Open Roadmap",
+        "category": "GSD"
+      },
+      {
+        "command": "gsd.openState",
+        "title": "Open State",
+        "category": "GSD"
+      },
+      {
+        "command": "gsd.refreshTree",
+        "title": "Refresh GSD tree",
+        "category": "GSD",
+        "icon": "$(refresh)"
+      }
     ],
     "menus": {
       "view/title": [
@@ -91,7 +108,8 @@
     "watch": "tsc -w -p .",
     "test": "npm run compile && mocha \"out/test/**/*.test.js\"",
     "test:parsers": "mocha \"out/test/parsers/**/*.test.js\"",
-    "package:vsix": "vsce package"
+    "package": "vsce package",
+    "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -99,6 +117,7 @@
     "@types/vscode": "^1.95.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.1",
     "mocha": "^11.7.5",
     "typescript": "^5.8"
   }
