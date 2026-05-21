@@ -17,6 +17,11 @@ Live GSD workflow state — milestone, phase, and recent activity — in your VS
 
 ### Screenshots
 
+<!-- Screenshots are captured per release as a manual UAT step and are not yet
+     present in the repo. The `images/` directory is excluded from the packaged
+     .vsix (see .vscodeignore) until real screenshots land, so these references
+     do not render as broken images in the extension listing. -->
+
 ![GSD status bar showing milestone and active phase](images/status-bar.png)
 
 ![GSD Activity Bar side panel with phase tree and recent activity](images/tree-panel.png)

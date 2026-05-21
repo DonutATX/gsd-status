@@ -23,3 +23,5 @@ out/test/**
 CLAUDE.md
 .vscode-test.mjs
 .mocharc.cjs
+images/**
+**/.gitkeep
