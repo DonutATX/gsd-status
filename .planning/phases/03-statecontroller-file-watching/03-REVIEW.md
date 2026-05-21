@@ -15,9 +15,9 @@ files_reviewed_list:
   - .mocharc.cjs
 findings:
   critical: 0
-  warning: 4
-  info: 4
-  total: 8
+  warning: 1
+  info: 3
+  total: 4
 status: issues_found
 ---
 
@@ -30,147 +30,96 @@ status: issues_found
 
 ## Summary
 
-Reviewed the StateController, debounce utility, extension entrypoint, and the
-Mocha test harness for Phase 3. The implementation is small, focused, and
-correctly read-only on `.planning/`. Error handling in `refresh()` is solid —
-it provably never rejects. No security vulnerabilities and no critical
-correctness defects were found.
+Iteration 2 re-review of the StateController / file-watching phase. All four prior
+Warning findings were re-verified and are confirmed **fixed**, with sound fixes
+that introduced no new bugs or security issues:
 
-However, four warnings concern real robustness gaps: a race condition where
-overlapping `refresh()` calls can emit events out of order, an unhandled
-rejection path in the debounced watcher callback, a stale-tooltip bug in the
-status bar item, and a test that does not actually exercise the scenario its
-`describe` block claims. The info items cover dead-code and convention nits.
+- **WR-01 (event-ordering race):** A monotonic `_generation` counter is now
+  implemented. `refresh()` captures `gen = ++this._generation` at entry and
+  re-checks `gen !== this._generation` after *every* `await` boundary — both the
+  success path (controller.ts:99) and the catch path (controller.ts:115). A
+  superseded refresh drops its result and never fires. Correct and complete.
+- **WR-02 (unhandled rejection):** `safeRefresh` wraps `refresh()` with
+  `.catch(e => console.error(...))` and is used for both the debounced watcher
+  callbacks and the `setInterval` fallback. The remaining direct `refresh()`
+  calls are intentional (`extension.ts:45` uses `void`; tests `await`).
+- **WR-03 (stale tooltip):** Every branch of the `onStateChanged` switch in
+  `extension.ts` now explicitly assigns `item.tooltip` — `undefined` for
+  `ok`/`no-project`, a message for `error`. Leaving the error state clears it.
+- **WR-04 (misleading test):** The WSP-04 suite now exercises three distinct
+  paths (generic rejection, zero-phase gibberish, non-ENOENT I/O error) with an
+  accurate comment that the parser-throw branch is unreachable. No dead `ctrl`
+  variable remains; assertions match the emitted state.
+
+One pre-existing latent defect and three minor quality items remain. No
+critical issues, no security vulnerabilities.
 
 ## Warnings
 
-### WR-01: Overlapping `refresh()` calls can emit stale state (event ordering race)
+### WR-01: `setInterval` fallback timer is created even with no workspace folder
 
-**File:** `src/state/controller.ts:71-106`
-**Issue:** `refresh()` is async and awaits `_readFiles`. The watcher (debounced),
-the 30s interval timer, and `extension.ts`'s initial `void controller.refresh()`
-can all invoke `refresh()` concurrently. If refresh call A starts, then call B
-starts and finishes first, A's `_emitter.fire(...)` runs *after* B's — emitting
-an older snapshot last. The status bar would then show stale state until the
-next refresh. There is no in-flight guard or sequence/generation counter.
-**Fix:** Add a generation counter and drop late results:
+**File:** `src/state/controller.ts:77-78`
+**Issue:** The `setInterval(safeRefresh, REFRESH_INTERVAL_MS)` fallback is created
+unconditionally, including when `folder` is `undefined`. In a folderless window
+(e.g., an empty VS Code window), every 30 seconds `safeRefresh` runs `refresh()`,
+which immediately fires `{ kind: 'no-project' }` and returns. This is a wasted
+periodic wakeup with no benefit for the entire lifetime of the extension. It is
+harmless to correctness (`extension.ts` re-renders "No project" idempotently),
+but it contradicts the performance intent in CLAUDE.md and burns a timer for
+nothing. The `_watcher` is already guarded by `if (folder)`; the interval is not.
+**Fix:** Guard the interval the same way as the watcher:
 ```typescript
-private _generation = 0;
-
-async refresh(): Promise<void> {
-  const gen = ++this._generation;
-  // ... after await, before each fire:
-  if (gen !== this._generation) return; // a newer refresh superseded this one
-  this._emitter.fire(...);
+if (folder) {
+  // ...watcher setup...
+  const id = setInterval(safeRefresh, REFRESH_INTERVAL_MS);
+  this._timerDisposable = { dispose: () => clearInterval(id) };
+} else {
+  this._timerDisposable = { dispose: () => undefined };
 }
 ```
-
-### WR-02: Debounced watcher callback can produce an unhandled promise rejection
-
-**File:** `src/state/controller.ts:57`
-**Issue:** `debounce(() => void this.refresh(), DEBOUNCE_MS)` uses `void` to
-discard the promise. `refresh()` is documented as "never rejects," and that
-holds for the current body — but the `void` discard means *any* future change
-that lets a rejection escape (e.g., a throw in `parseRoadmap` outside the
-`try`, or a synchronous throw before the `try`) becomes an unhandled rejection
-that crashes the extension host with no diagnostic. The same applies to the
-interval timer at line 63. The safety depends entirely on `refresh()`'s
-internal contract holding forever.
-**Fix:** Attach a `.catch` as defense-in-depth so a contract regression is
-logged rather than silently fatal:
-```typescript
-const safeRefresh = () => { this.refresh().catch(e => console.error('GSD refresh failed', e)); };
-const debouncedRefresh = debounce(safeRefresh, DEBOUNCE_MS);
-// ...
-const id = setInterval(safeRefresh, REFRESH_INTERVAL_MS);
-```
-
-### WR-03: Status bar tooltip is never cleared when leaving the error state
-
-**File:** `src/extension.ts:24-39`
-**Issue:** The `error` case sets `item.tooltip = 'Error parsing GSD files'`.
-Neither the `ok` case nor the `no-project` case clears `item.tooltip`. After an
-error refresh followed by a successful refresh, the status bar shows correct
-`ok` text but still carries the stale "Error parsing GSD files" tooltip,
-misleading the developer into thinking parsing is still broken.
-**Fix:** Clear the tooltip in the non-error branches:
-```typescript
-case 'ok': {
-  // ...
-  item.text = `$(pulse) ${milestone} › ${phase}`;
-  item.tooltip = undefined;
-  break;
-}
-case 'no-project':
-  item.text = 'GSD: No project';
-  item.tooltip = undefined;
-  break;
-```
-
-### WR-04: `controller.test.ts` "parse path" test does not exercise the parse path
-
-**File:** `src/test/state/controller.test.ts:64-82`
-**Issue:** The test is named "parse path: thrown error inside refresh is caught
-and emitted as kind:error" and the `describe` is WSP-04. The test comment
-itself admits "We can't easily force a parse throw with valid text, so test
-I/O throw as proxy." It then creates an unused `ctrl` (lines 66-69, never
-referenced — dead variable) and actually tests `ctrl2`, which throws from
-`_readFiles` — an I/O failure, not a parse failure. The parser-throws branch is
-not covered, and the misleading name will mask that gap in future audits. Note
-the parsers are documented as total (never throw), so this branch may be
-genuinely unreachable — in which case the test should be renamed/removed rather
-than left pretending to cover it.
-**Fix:** Delete the unused `ctrl` variable. Rename the test to reflect that it
-covers an I/O rejection (it duplicates the EACCES test at line 98 then).
-Either add a real parser-throw test with a stub parser, or document that the
-branch is unreachable and remove the misleading name.
 
 ## Info
 
-### IN-01: Unused dead variable in test
+### IN-01: `.mocharc.cjs` does not declare a `spec` glob
 
-**File:** `src/test/state/controller.test.ts:66-69`
-**Issue:** `const ctrl` is declared and assigned but never used — the test
-operates entirely on `ctrl2`. Dead code that ESLint's `no-unused-vars` should
-flag.
-**Fix:** Remove the `const ctrl = new StateController(...)` block at lines 66-69.
+**File:** `.mocharc.cjs:13-15`
+**Issue:** The config only sets `require`. With no `spec` field, Mocha falls back
+to its default `./test/*.{js,cjs,mjs}`, which does not match the compiled layout
+(`out/test/**`). Test discovery therefore depends entirely on the `spec` argument
+being passed on the command line (npm script). It works today but is fragile:
+bare `npx mocha` finds nothing, and an edit to the npm script can silently break
+discovery with no config-level safety net.
+**Fix:** Add an explicit spec glob so the config is self-sufficient:
+```javascript
+module.exports = {
+  require: ['out/test/setup/vscode-mock.js'],
+  spec: ['out/test/**/*.test.js'],
+};
+```
 
-### IN-02: `controller.test.ts` creates real `setInterval` timers that are never disposed
+### IN-02: `debounce` provides no cancel; pending timer can outlive `dispose()`
 
-**File:** `src/test/state/controller.test.ts` (all `new StateController(...)` calls)
-**Issue:** Every `StateController` constructed in the tests starts a 30-second
-`setInterval` (controller.ts:63). No test calls `ctrl.dispose()`, so each test
-leaks an active timer. With a 30s interval the tests finish long before it
-fires, so behavior is correct today, but the leaked timer-handles keep the
-Node event loop alive and are a latent flakiness/teardown source if the suite
-ever runs longer or adds fake timers.
-**Fix:** Add an `afterEach` that disposes created controllers, or have each test
-call `ctrl.dispose()` in a `finally`.
+**File:** `src/state/debounce.ts:17-28` (used at `controller.ts:71`)
+**Issue:** `debounce` returns a bare function with no way to cancel a pending
+timer. If `StateController.dispose()` is called within the 300ms debounce window
+after a watcher event, the queued `safeRefresh` still fires ~300ms later and
+calls `this._emitter.fire(...)` on an already-disposed `EventEmitter`. The vscode
+`EventEmitter` tolerates `fire()` after `dispose()` (empty listener list), and
+`extension.ts` additionally guards with the `lifecycle.disposed` flag, so no
+crash is observed — but the extension still performs file I/O after disposal.
+Low severity given the existing guards.
+**Fix:** Optional hardening — give `debounce` a `.cancel()` method and invoke it
+in `StateController.dispose()` before disposing the watcher.
 
-### IN-03: `_folder` parameter type is broader than the watcher cast assumes
-
-**File:** `src/state/controller.ts:39, 52-55`
-**Issue:** The constructor accepts `vscode.WorkspaceFolder | { uri: { fsPath:
-string } } | undefined`, but line 53 does `folder as vscode.WorkspaceFolder`
-when building the `RelativePattern`. A plain `{ uri: { fsPath } }` object (used
-throughout the tests) is not a real `WorkspaceFolder` — it lacks `name` and
-`index`. This works only because the stub `RelativePattern` ignores the shape.
-Against the real vscode API, passing a non-`WorkspaceFolder` may misbehave. The
-`as` cast hides the mismatch from the compiler.
-**Fix:** Narrow the public type to what `RelativePattern` actually needs, or
-build the pattern from `folder.uri` directly (`new vscode.RelativePattern(
-folder.uri, '.planning/{ROADMAP,STATE}.md')`), which is a supported overload
-and removes the cast.
-
-### IN-04: `vscode-mock.ts` global `Module._resolveFilename` hook is installed permanently
+### IN-03: `vscode-mock.ts` installs a permanent global `Module._resolveFilename` hook
 
 **File:** `src/test/setup/vscode-mock.ts:28-34`
 **Issue:** The require-hook replaces `Module._resolveFilename` process-wide for
-the lifetime of the Mocha run and is never restored. This is acceptable for a
-dedicated test process, but any future tooling that loads a *real* `vscode`
-(e.g., a mixed run with `@vscode/test-electron`) would be silently redirected
-to the stub. The original is captured (`const original`) but never reinstalled.
-**Fix:** No change required for bare-Mocha runs; add a comment noting this hook
+the lifetime of the Mocha run and is never restored. Acceptable for a dedicated
+bare-Mocha process, but any future mixed run that loads a *real* `vscode` (e.g.,
+`@vscode/test-electron`) would be silently redirected to the stub. The original
+is captured (`const original`) but never reinstalled.
+**Fix:** No change required for bare-Mocha runs; add a comment that this hook
 must not be combined with EDH-based test runs, or expose a restore function.
 
 ---
