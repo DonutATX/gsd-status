@@ -57,6 +57,11 @@ class RelativePattern {
 class MarkdownString {
   private _value = '';
   appendMarkdown(value: string): this { this._value += value; return this; }
+  appendText(value: string): this {
+    // VS Code escapes markdown control chars in appendText.
+    this._value += value.replace(/[\\`*_{}[\]()#+\-.!>~|]/g, '\\$&');
+    return this;
+  }
   get value(): string { return this._value; }
 }
 
