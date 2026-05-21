@@ -421,7 +421,7 @@ SCAF-05 is fully complete. No work needed.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Screenshot requirement (PKG-04)**
    - What we know: PKG-04 requires a screenshot of status bar + tree in README. CONTEXT.md confirms screenshot capture is a manual UAT step.
