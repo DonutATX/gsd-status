@@ -63,7 +63,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Parse or I/O errors show an "Error parsing GSD files" status in the status bar rather than crashing or silently failing
   4. Developer verifies via Activity Monitor (or Task Manager) that the watcher causes no CPU spike on repeated rapid file saves
   5. Periodic refresh fallback fires on the configured interval (default 30s) even when no file-change events arrive
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 03-01-PLAN.md — TDD GsdState + debounce util + StateController atomic refresh (WSP-02/03/04)
+- [ ] 03-02-PLAN.md — Wire FileSystemWatcher + 30s timer; replace parseLite in extension.ts (WAT-01/02/03/04, STAT-05)
 
 ### Phase 4: Tooltip, Commands + Configuration
 **Goal**: Developer can hover the status bar for full detail, open GSD files from the Command Palette, and adjust refresh behavior from VS Code settings
