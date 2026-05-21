@@ -39,8 +39,8 @@
 
 - [x] **STAT-01**: Status bar item is always visible (left-aligned, low priority) and shows `$(icon) Milestone › Phase` when a GSD project is detected
 - [x] **STAT-02**: Status bar shows `GSD: No project` when no `.planning/` is detected in the active workspace
-- [ ] **STAT-03**: Hover tooltip shows milestone name, active phase name + goal, and the most recent STATE.md entry (text + timestamp)
-- [ ] **STAT-04**: Status bar item has a default command (clicking it runs `gsd.openState` or opens the side panel — choose one and document)
+- [x] **STAT-03**: Hover tooltip shows milestone name, active phase name + goal, and the most recent STATE.md entry (text + timestamp)
+- [x] **STAT-04**: Status bar item has a default command (clicking it runs `gsd.openState` or opens the side panel — choose one and document)
 - [ ] **STAT-05**: Status bar text updates ≤500ms after a debounced file-change event under normal load
 
 ### Side Panel (TreeView)
@@ -130,8 +130,8 @@ Updated during roadmap creation.
 | WAT-03 | Phase 3 | Pending |
 | WAT-04 | Phase 3 | Pending |
 | STAT-05 | Phase 3 | Pending |
-| STAT-03 | Phase 4 | Pending |
-| STAT-04 | Phase 4 | Pending |
+| STAT-03 | Phase 4 | Complete |
+| STAT-04 | Phase 4 | Complete |
 | CMD-01 | Phase 4 | Pending |
 | CMD-02 | Phase 4 | Pending |
 | CMD-03 | Phase 4 | Pending |
