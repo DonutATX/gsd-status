@@ -62,22 +62,21 @@ describe('WSP-02 — each refresh() fires exactly one event', () => {
 });
 
 describe('WSP-04 — errors emitted as state, refresh never throws', () => {
-  it('parse path: thrown error inside refresh is caught and emitted as kind:error', async () => {
+  // Note: the Phase 2 parsers are documented as total (never throw, PARS-03),
+  // so a genuine parser-throw branch is unreachable. This test exercises a
+  // generic readFiles rejection — the catch block treats any non-ENOENT
+  // failure (I/O or otherwise) uniformly as kind:error.
+  it('readFiles rejecting with a generic error is caught and emitted as kind:error', async () => {
     const ctrl = new StateController(
       { uri: { fsPath: '/fake/workspace' } },
-      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+      async () => { throw new Error('unexpected refresh failure'); },
     );
-    // We can't easily force a parse throw with valid text, so test I/O throw as proxy:
-    const ctrl2 = new StateController(
-      { uri: { fsPath: '/fake/workspace' } },
-      async () => { throw new Error('unexpected parse failure'); },
-    );
-    const eventPromise = collectOne(ctrl2);
-    await assert.doesNotReject(() => ctrl2.refresh());
+    const eventPromise = collectOne(ctrl);
+    await assert.doesNotReject(() => ctrl.refresh());
     const state = await eventPromise;
     assert.equal(state.kind, 'error');
     if (state.kind === 'error') {
-      assert.match(state.message, /unexpected parse failure/);
+      assert.match(state.message, /unexpected refresh failure/);
     }
   });
 
