@@ -97,7 +97,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. Developer clicks the manual refresh toolbar button in the TreeView and the tree updates immediately
 **Plans**: 3 plans
 - [x] 05-01-PLAN.md — Extend STATE.md parser with recentEntries array (TDD)
-- [ ] 05-02-PLAN.md — GsdTreeItem types + GsdTreeProvider with tree stubs (TDD)
+- [x] 05-02-PLAN.md — GsdTreeItem types + GsdTreeProvider with tree stubs (TDD)
 - [ ] 05-03-PLAN.md — Activity Bar contributions, SVG icon, welcome view, extension wiring
 **UI hint**: yes
 
@@ -124,5 +124,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Parsers + Tests | 0/2 | Not started | - |
 | 3. StateController + File Watching | 2/2 | Complete   | 2026-05-21 |
 | 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
-| 5. Side Panel TreeView | 1/3 | In Progress|  |
+| 5. Side Panel TreeView | 2/3 | In Progress|  |
 | 6. Packaging + Distribution | 0/TBD | Not started | - |

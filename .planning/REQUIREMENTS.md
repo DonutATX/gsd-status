@@ -46,12 +46,12 @@
 ### Side Panel (TreeView)
 
 - [ ] **PANL-01**: A TreeView is contributed under a dedicated Activity Bar view container with an SVG icon
-- [ ] **PANL-02**: Tree displays all phases from ROADMAP.md as top-level nodes; the active phase is visually distinguished (theme icon)
-- [ ] **PANL-03**: Each phase node is expandable to reveal its goal and success criteria as child items
+- [x] **PANL-02**: Tree displays all phases from ROADMAP.md as top-level nodes; the active phase is visually distinguished (theme icon)
+- [x] **PANL-03**: Each phase node is expandable to reveal its goal and success criteria as child items
 - [x] **PANL-04**: A "Recent Activity" section at the top of the tree shows the last N (default 5) STATE.md entries
 - [ ] **PANL-05**: A welcome view shows "No GSD project found. Run `/gsd:new-project` to initialize." when no `.planning/` exists
 - [ ] **PANL-06**: TreeView toolbar exposes a manual refresh action
-- [ ] **PANL-07**: Tree refresh uses `EventEmitter`-based `onDidChangeTreeData` and does not fully collapse on every update (partial refresh / stable identities)
+- [x] **PANL-07**: Tree refresh uses `EventEmitter`-based `onDidChangeTreeData` and does not fully collapse on every update (partial refresh / stable identities)
 
 ### Commands
 
@@ -140,12 +140,12 @@ Updated during roadmap creation.
 | CFG-02 | Phase 4 | Complete |
 | CFG-03 | Phase 4 | Complete |
 | PANL-01 | Phase 5 | Pending |
-| PANL-02 | Phase 5 | Pending |
-| PANL-03 | Phase 5 | Pending |
+| PANL-02 | Phase 5 | Complete |
+| PANL-03 | Phase 5 | Complete |
 | PANL-04 | Phase 5 | Complete |
 | PANL-05 | Phase 5 | Pending |
 | PANL-06 | Phase 5 | Pending |
-| PANL-07 | Phase 5 | Pending |
+| PANL-07 | Phase 5 | Complete |
 | PKG-01 | Phase 6 | Pending |
 | PKG-02 | Phase 6 | Pending |
 | PKG-03 | Phase 6 | Pending |
