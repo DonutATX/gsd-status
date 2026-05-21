@@ -95,7 +95,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Developer sees a "Recent Activity" section at the top of the tree showing the last 5 STATE.md entries
   4. Developer opens a workspace with no .planning/ and sees the welcome view: "No GSD project found. Run /gsd:new-project to initialize."
   5. Developer clicks the manual refresh toolbar button in the TreeView and the tree updates immediately
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 05-01-PLAN.md — Extend STATE.md parser with recentEntries array (TDD)
+- [ ] 05-02-PLAN.md — GsdTreeItem types + GsdTreeProvider with tree stubs (TDD)
+- [ ] 05-03-PLAN.md — Activity Bar contributions, SVG icon, welcome view, extension wiring
 **UI hint**: yes
 
 ### Phase 6: Packaging + Distribution
@@ -121,5 +124,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Parsers + Tests | 0/2 | Not started | - |
 | 3. StateController + File Watching | 2/2 | Complete   | 2026-05-21 |
 | 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
-| 5. Side Panel TreeView | 0/TBD | Not started | - |
+| 5. Side Panel TreeView | 0/3 | Not started | - |
 | 6. Packaging + Distribution | 0/TBD | Not started | - |
