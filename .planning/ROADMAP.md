@@ -64,7 +64,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Developer verifies via Activity Monitor (or Task Manager) that the watcher causes no CPU spike on repeated rapid file saves
   5. Periodic refresh fallback fires on the configured interval (default 30s) even when no file-change events arrive
 **Plans**: 2 plans
-- [ ] 03-01-PLAN.md — TDD GsdState + debounce util + StateController atomic refresh (WSP-02/03/04)
+- [x] 03-01-PLAN.md — TDD GsdState + debounce util + StateController atomic refresh (WSP-02/03/04)
 - [ ] 03-02-PLAN.md — Wire FileSystemWatcher + 30s timer; replace parseLite in extension.ts (WAT-01/02/03/04, STAT-05)
 
 ### Phase 4: Tooltip, Commands + Configuration
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Scaffold + Minimal Status Bar | 2/2 | Complete   | 2026-05-20 |
 | 2. Parsers + Tests | 0/2 | Not started | - |
-| 3. StateController + File Watching | 0/TBD | Not started | - |
+| 3. StateController + File Watching | 1/2 | In Progress|  |
 | 4. Tooltip, Commands + Configuration | 0/TBD | Not started | - |
 | 5. Side Panel TreeView | 0/TBD | Not started | - |
 | 6. Packaging + Distribution | 0/TBD | Not started | - |
