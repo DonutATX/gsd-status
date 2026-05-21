@@ -112,7 +112,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Developer runs `vsce ls` and confirms packaged size is under 500 KB with no source files, test files, or planning docs included
   4. README.md documents install steps, a feature overview, and includes a screenshot of the status bar and tree panel
 **Plans**: 2 plans
-- [ ] 06-01-PLAN.md — Packaging toolchain: install @vscode/vsce, fix scripts + .vscodeignore, build verified .vsix
+- [x] 06-01-PLAN.md — Packaging toolchain: install @vscode/vsce, fix scripts + .vscodeignore, build verified .vsix
 - [ ] 06-02-PLAN.md — Documentation: CHANGELOG.md v0.1.0 + expanded README.md with install/features/settings
 
 ## Progress
@@ -127,4 +127,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. StateController + File Watching | 2/2 | Complete   | 2026-05-21 |
 | 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
 | 5. Side Panel TreeView | 3/3 | Complete   | 2026-05-21 |
-| 6. Packaging + Distribution | 0/TBD | Not started | - |
+| 6. Packaging + Distribution | 1/2 | In Progress|  |
