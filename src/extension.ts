@@ -73,6 +73,21 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  // Live config reload: restart the periodic timer when the user changes the interval setting.
+  // Use the fully-qualified key ('gsd.refreshIntervalSeconds') to avoid spurious restarts
+  // when gsd.recentActivityCount changes (Pitfall 6 — RESEARCH.md).
+  // gsd.recentActivityCount: Phase 5 will consume; no live action needed in Phase 4.
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(event => {
+      if (lifecycle.disposed) return;
+      if (event.affectsConfiguration('gsd.refreshIntervalSeconds')) {
+        const seconds = vscode.workspace.getConfiguration('gsd')
+          .get<number>('refreshIntervalSeconds', 30);
+        controller.setRefreshInterval(seconds);
+      }
+    })
+  );
+
   void controller.refresh();
 }
 
