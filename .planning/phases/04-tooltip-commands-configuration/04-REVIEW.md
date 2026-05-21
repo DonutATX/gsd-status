@@ -15,9 +15,9 @@ files_reviewed_list:
   - src/test/state/tooltip.test.ts
 findings:
   critical: 1
-  warning: 4
+  warning: 1
   info: 3
-  total: 8
+  total: 5
 status: issues_found
 ---
 
@@ -25,105 +25,98 @@ status: issues_found
 
 **Reviewed:** 2026-05-21
 **Depth:** standard
-**Files Reviewed:** 9
 **Status:** issues_found
+**Files Reviewed:** 9
 
 ## Summary
 
-Phase 4 wires up the tooltip builders, the three GSD commands, and live config
-reload for the refresh interval. The code is clean and well-commented, with
-prior review IDs tracked inline. However, two correctness gaps undermine the
-phase's stated goal: (1) the user-configured refresh interval is never applied
-at startup — it only takes effect after the setting is *changed*, so a project
-opened with a custom interval silently runs at the hardcoded 30s default; and
-(2) the `setRefreshInterval` clamp that claims to prevent a busy-loop DoS does
-not guard against `NaN`, which would defeat the clamp entirely. There is also a
-markdown-injection vector in the tooltip that the isTrusted=false comment does
-not actually cover.
+Re-review after fixes for prior findings CR-01, WR-01, WR-02, WR-03, WR-04.
+
+**Prior findings — all confirmed resolved:**
+
+- **CR-01 (NaN clamp bypass)** — RESOLVED. `controller.ts:141` now coerces
+  non-finite input via `Number.isFinite(seconds) ? seconds : 30` before the
+  `Math.max(5, …)` clamp.
+- **WR-01 (interval ignored at startup)** — RESOLVED. `extension.ts:81-83`
+  reads `gsd.refreshIntervalSeconds` and calls `controller.setRefreshInterval`
+  during `activate()`.
+- **WR-02 (raw markdown injection)** — RESOLVED in production code.
+  `tooltip.ts:39` now uses `ms.appendText(state.lastEntry.text)`. See CR-02
+  below: the fix introduced a test-stub regression.
+- **WR-03 (empty backtick span)** — RESOLVED. `tooltip.ts:34-35` guards the
+  absolute-timestamp span behind `const tail = abs ? … : ''`.
+- **WR-04 (folder scope ignored)** — RESOLVED. `extension.ts:81,95-96` pass
+  `folder?.uri` to both `getConfiguration` and `affectsConfiguration`.
+
+**New issue:** the WR-02 fix changed production code (`appendMarkdown` →
+`appendText`) but the test `MarkdownString` stub was not updated to implement
+`appendText`. This breaks the `buildOkTooltip` test suite (CR-02).
 
 ## Critical Issues
 
-### CR-01: Refresh-interval clamp bypassed by NaN — busy-loop risk
+### CR-02: WR-02 fix breaks the tooltip test suite — stub missing `appendText`
 
-**File:** `src/state/controller.ts:138`
-**Issue:** `setRefreshInterval` computes `const ms = Math.max(5, seconds) * 1000`.
-The inline comment claims this "prevents busy-loop DoS" (T-04-05). But
-`Math.max(5, NaN)` returns `NaN`, and `setInterval(fn, NaN)` is treated by
-Node/VS Code as a 0ms (or 1ms) interval — `refresh()` fires continuously,
-hammering the filesystem and the editor. `seconds` comes from
-`getConfiguration('gsd').get<number>('refreshIntervalSeconds', 30)`; the default
-is only returned when the key is *absent*. A user who sets the value to a
-non-numeric or otherwise malformed JSON value can produce a non-number, which
-flows straight into the clamp. The clamp's whole purpose is defeated.
-**Fix:**
+**File:** `src/test/setup/vscode-stub.ts:57-61` (and `src/state/tooltip.ts:39`)
+**Issue:** The WR-02 fix replaced `ms.appendMarkdown(state.lastEntry.text)`
+with `ms.appendText(state.lastEntry.text)` in `tooltip.ts:39`. The bare-Mocha
+test stub's `MarkdownString` class implements only `appendMarkdown` and a
+`value` getter — it has no `appendText` method:
+
 ```ts
-setRefreshInterval(seconds: number): void {
-  if (this._disposed) return;
-  const safe = Number.isFinite(seconds) ? seconds : 30;
-  const ms = Math.max(5, safe) * 1000; // clamp: finite + 5s minimum
-  ...
+class MarkdownString {
+  private _value = '';
+  appendMarkdown(value: string): this { this._value += value; return this; }
+  get value(): string { return this._value; }
 }
 ```
-Apply the same `Number.isFinite` guard at the `extension.ts:84-86` call site.
+
+`tooltip.test.ts` exercises `buildOkTooltip` with `MINIMAL_STATE`, which has a
+populated `lastEntry`, so every call reaches `tooltip.ts:39` and invokes
+`ms.appendText(...)`. Against the stub this throws
+`TypeError: ms.appendText is not a function`, failing the entire
+`buildOkTooltip` suite (milestone rendering, active-phase rendering, last-entry
+rendering — 8+ tests). The fix shipped production code without updating the
+test double it depends on, so the suite that should validate the fix instead
+crashes. This is a correctness/CI-breaking defect.
+**Fix:** Add `appendText` to the stub. To faithfully model VS Code behavior
+(`appendText` escapes markdown), escape the input:
+
+```ts
+class MarkdownString {
+  private _value = '';
+  appendMarkdown(value: string): this { this._value += value; return this; }
+  appendText(value: string): this {
+    // VS Code escapes markdown control chars in appendText.
+    this._value += value.replace(/[\\`*_{}[\]()#+\-.!>~|]/g, '\\$&');
+    return this;
+  }
+  get value(): string { return this._value; }
+}
+```
+
+Note: `tooltip.test.ts:78` asserts `ms.value.includes('Completed scaffolding')`
+— that plain text contains no escapable characters, so it still passes. Verify
+no other assertion relies on un-escaped entry text.
 
 ## Warnings
 
-### WR-01: User-configured refresh interval is ignored at startup
+### WR-05: `appendText` is called with a possibly-undefined value
 
-**File:** `src/extension.ts:80-89`
-**Issue:** `setRefreshInterval` is only invoked from inside the
-`onDidChangeConfiguration` handler. On `activate()`, the controller's
-constructor starts a timer at the hardcoded `REFRESH_INTERVAL_MS` (30s). If a
-project's `settings.json` already contains
-`gsd.refreshIntervalSeconds: 10`, that value is never read until the user edits
-the setting again. The phase goal ("configuration") is only half-delivered:
-the setting is live-reloadable but not honored on load.
-**Fix:** After constructing the controller in `activate()`, read the current
-value once and apply it:
+**File:** `src/state/tooltip.ts:39`
+**Issue:** `ms.appendText(state.lastEntry.text)` passes `state.lastEntry.text`
+directly. If the `StateData.lastEntry.text` field is typed as optional (or the
+Phase 2 state parser can produce a `lastEntry` with an absent `text`), this
+passes `undefined` into `appendText`. The real VS Code `appendText` expects a
+`string`; `undefined` either throws or renders the literal string
+`"undefined"`. The surrounding `if (state.lastEntry)` guard checks the entry
+object exists but not that `text` is populated. The test fixture always
+supplies a `text`, so this gap is untested.
+**Fix:** Guard the field, or default it:
 ```ts
-const initialInterval = vscode.workspace.getConfiguration('gsd')
-  .get<number>('refreshIntervalSeconds', 30);
-controller.setRefreshInterval(initialInterval);
+ms.appendText(state.lastEntry.text ?? '');
 ```
-
-### WR-02: Tooltip injects raw STATE.md text as markdown
-
-**File:** `src/state/tooltip.ts:33`
-**Issue:** `ms.appendMarkdown(state.lastEntry.text)` appends user-controlled file
-content via `appendMarkdown`, which interprets markdown syntax. The function
-comment only justifies `isTrusted=false` (blocks command-URI injection) — it
-does not address that arbitrary markdown in a STATE.md entry (headings, list
-markers, backtick fences, links) will render/break the tooltip layout. Entry
-text is data, not markup.
-**Fix:** Use `ms.appendText(state.lastEntry.text)` for the entry body so the
-content is escaped and rendered literally. `appendMarkdown` should be reserved
-for the labels the extension itself controls.
-
-### WR-03: Empty backticks rendered when timestamp is absent
-
-**File:** `src/state/tooltip.ts:28-32`
-**Issue:** `abs` falls back through `state.lastEntry.timestamp ?? state.lastUpdated ?? ''`.
-When both are absent, `abs` is `''` and line 32 renders `_unknown_ — ` followed
-by empty backticks (`` `` ``), producing a stray, meaningless code span in the
-tooltip.
-**Fix:** Guard the absolute-timestamp span:
-```ts
-const tail = abs ? ` — \`${abs}\`` : '';
-ms.appendMarkdown(`_${rel}_${tail}\n`);
-```
-
-### WR-04: Config change handler ignores workspace-folder scope
-
-**File:** `src/extension.ts:81-88`
-**Issue:** `onDidChangeConfiguration` checks `affectsConfiguration('gsd.refreshIntervalSeconds')`
-with no resource argument, then reads `getConfiguration('gsd')` also with no
-resource. In a multi-root workspace the effective value can differ per folder;
-the controller is bound to `workspaceFolders[0]`. Reading the unscoped value can
-apply the wrong folder's setting. Low likelihood for this single-folder-focused
-extension, but the mismatch is a latent bug.
-**Fix:** Pass the controller's folder URI to both calls:
-`getConfiguration('gsd', folder?.uri)` and check
-`event.affectsConfiguration('gsd.refreshIntervalSeconds', folder?.uri)`.
+If the `StateData` type guarantees `text` is always a non-optional string,
+this is a no-op — confirm against `src/parsers/types.ts` and downgrade if so.
 
 ## Info
 
@@ -131,32 +124,36 @@ extension, but the mismatch is a latent bug.
 
 **File:** `src/state/relativeTime.ts:28`
 **Issue:** The `>=24h` bucket always renders `${d} days ago`, producing
-"1 days ago" for a one-day-old timestamp. The `relativeTime` test at
-`relativeTime.test.ts:42` even asserts this incorrect string, locking in the
-bug.
-**Fix:** `return d === 1 ? '1 day ago' : \`${d} days ago\`;` and update the test
-expectation accordingly.
+"1 days ago" for a one-day-old timestamp. `relativeTime.test.ts:41-44`
+asserts this incorrect string, locking in the defect. (Carried over from prior
+review — not in the CR-01/WR-01..04 fix scope, still unresolved.)
+**Fix:** `return d === 1 ? '1 day ago' : \`${d} days ago\`;` and update the
+test expectation.
 
-### IN-02: vscode stub diverges from real getConfiguration signature
+### IN-02: vscode stub `getConfiguration` ignores the scope argument
 
 **File:** `src/test/setup/vscode-stub.ts:70-72`
-**Issue:** The stub's `getConfiguration` ignores the optional `scope`/`resource`
-second argument and always returns the default. If WR-04 is fixed to pass a
-resource argument, tests would still pass against a stub that does not model
-scoping — giving false confidence. Acceptable for current coverage but worth a
-note.
-**Fix:** When resource-scoped config is introduced, extend the stub to accept
-and (minimally) honor the second argument.
+**Issue:** Now that WR-04 is fixed, `extension.ts` passes a resource URI as the
+second argument to `getConfiguration('gsd', folder?.uri)`. The stub signature
+is `getConfiguration: (_section?: string) => …` — it accepts and silently
+ignores the resource argument and always returns the supplied default. Tests
+pass regardless of whether folder-scoped resolution works, giving false
+confidence in the WR-04 fix.
+**Fix:** Extend the stub signature to accept the second `scope` argument and,
+minimally, document that it is ignored — or model per-folder values if
+folder-scoped tests are added.
 
-### IN-03: No test coverage for setRefreshInterval value mapping
+### IN-03: No test coverage for `setRefreshInterval` value mapping
 
 **File:** `src/test/state/controller.test.ts:139-188`
-**Issue:** Every `setRefreshInterval` test only asserts `doesNotThrow`. None
-verifies that the interval actually changes, that the clamp produces the
-expected ms, or (relevant to CR-01) that a `NaN`/non-finite input is handled.
-The clamp logic is effectively untested.
-**Fix:** Inject a fake timer or expose the computed interval for assertion, and
-add a case for `setRefreshInterval(NaN)`.
+**Issue:** Every `setRefreshInterval` test asserts only `doesNotThrow`. None
+verifies the interval actually changes, that the clamp produces the expected
+ms, or — most relevant given the CR-01 fix — that a `NaN`/non-finite input is
+coerced to the 30s default. The CR-01 fix is effectively untested; a future
+regression that removes the `Number.isFinite` guard would not be caught.
+**Fix:** Inject a fake timer (or expose the computed interval for assertion)
+and add explicit cases for `setRefreshInterval(NaN)`,
+`setRefreshInterval(2)` → 5000ms, and `setRefreshInterval(10)` → 10000ms.
 
 ---
 
