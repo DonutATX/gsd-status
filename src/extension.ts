@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { StateController } from './state/controller.js';
 import { buildOkTooltip, buildErrorTooltip } from './state/tooltip.js';
+import { GsdTreeProvider } from './tree/provider.js';
 
 export function activate(context: vscode.ExtensionContext): void {
   const item = vscode.window.createStatusBarItem(
@@ -48,6 +49,32 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   item.command = 'gsd.openState';
+
+  // Tree provider wiring — PANL-01, PANL-05, PANL-06.
+  const provider = new GsdTreeProvider();
+  const recentCount = vscode.workspace.getConfiguration('gsd', folder?.uri)
+    .get<number>('recentActivityCount', 5);
+  provider.setRecentCount(recentCount);
+  const treeView = vscode.window.createTreeView('gsd.treeView', {
+    treeDataProvider: provider,
+    showCollapseAll: false,
+  });
+  context.subscriptions.push(treeView, provider);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('gsd.refreshTree', () => { void controller.refresh(); }),
+  );
+
+  // Second onStateChanged subscription: drive setContext + provider update.
+  // Registered BEFORE void controller.refresh() so first event sets gsd.hasProject
+  // on initial load (prevents welcome-view flash — RESEARCH.md Pitfall 2).
+  context.subscriptions.push(
+    controller.onStateChanged(state => {
+      if (lifecycle.disposed) return;
+      void vscode.commands.executeCommand('setContext', 'gsd.hasProject', state.kind === 'ok');
+      provider.update(state);
+    }),
+  );
 
   context.subscriptions.push(
     controller.onStateChanged(state => {
@@ -96,6 +123,12 @@ export function activate(context: vscode.ExtensionContext): void {
         const seconds = vscode.workspace.getConfiguration('gsd', folder?.uri)
           .get<number>('refreshIntervalSeconds', 30);
         controller.setRefreshInterval(seconds);
+      }
+      if (event.affectsConfiguration('gsd.recentActivityCount', folder?.uri)) {
+        const count = vscode.workspace.getConfiguration('gsd', folder?.uri)
+          .get<number>('recentActivityCount', 5);
+        provider.setRecentCount(count);
+        void controller.refresh();
       }
     })
   );
