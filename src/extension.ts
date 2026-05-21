@@ -73,6 +73,15 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  // WR-01: honor a project's configured refresh interval on activation.
+  // The controller's constructor starts a timer at the hardcoded 30s default;
+  // without this read, a custom gsd.refreshIntervalSeconds is ignored until the
+  // user edits the setting. WR-04: scope the read to the controller's folder so
+  // a multi-root workspace applies the correct folder's value.
+  const initialInterval = vscode.workspace.getConfiguration('gsd', folder?.uri)
+    .get<number>('refreshIntervalSeconds', 30);
+  controller.setRefreshInterval(initialInterval);
+
   // Live config reload: restart the periodic timer when the user changes the interval setting.
   // Use the fully-qualified key ('gsd.refreshIntervalSeconds') to avoid spurious restarts
   // when gsd.recentActivityCount changes (Pitfall 6 — RESEARCH.md).
@@ -80,8 +89,11 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(event => {
       if (lifecycle.disposed) return;
-      if (event.affectsConfiguration('gsd.refreshIntervalSeconds')) {
-        const seconds = vscode.workspace.getConfiguration('gsd')
+      // WR-04: pass the controller's folder URI so affectsConfiguration and the
+      // subsequent read both resolve the value for the folder the controller
+      // is bound to (workspaceFolders[0]).
+      if (event.affectsConfiguration('gsd.refreshIntervalSeconds', folder?.uri)) {
+        const seconds = vscode.workspace.getConfiguration('gsd', folder?.uri)
           .get<number>('refreshIntervalSeconds', 30);
         controller.setRefreshInterval(seconds);
       }
