@@ -39,7 +39,10 @@ export class StateController implements vscode.Disposable {
   private readonly _folder: vscode.WorkspaceFolder | { uri: { fsPath: string } } | undefined;
   private readonly _readFiles: (base: string) => Promise<{ roadmapText: string; stateText: string }>;
   private readonly _watcher: vscode.FileSystemWatcher | undefined;
-  private readonly _timerDisposable: vscode.Disposable;
+  private _timerDisposable: vscode.Disposable;
+
+  /** Guard against post-dispose timer leaks (T-04-06). */
+  private _disposed = false;
 
   /**
    * Monotonic refresh counter. Each refresh() call captures its own generation;
@@ -125,7 +128,24 @@ export class StateController implements vscode.Disposable {
     }
   }
 
+  /**
+   * Replace the periodic refresh timer with a new one at the given interval.
+   * Clamps to a 5-second minimum (T-04-05 — prevents busy-loop DoS).
+   * Returns early if already disposed (T-04-06 — prevents leaked timer).
+   */
+  setRefreshInterval(seconds: number): void {
+    if (this._disposed) return;
+    const ms = Math.max(5, seconds) * 1000; // defensive clamp; minimum 5s
+    this._timerDisposable.dispose(); // clear old interval
+    const safeRefresh = (): void => {
+      this.refresh().catch((e) => console.error('GSD refresh failed', e));
+    };
+    const id = setInterval(safeRefresh, ms);
+    this._timerDisposable = { dispose: () => clearInterval(id) };
+  }
+
   dispose(): void {
+    this._disposed = true;
     this._watcher?.dispose();
     this._timerDisposable.dispose();
     this._emitter.dispose();
