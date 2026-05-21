@@ -19,7 +19,13 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "contributes": {},
+  "contributes": {
+    "commands": [
+      { "command": "gsd.refresh",     "title": "Refresh",      "category": "GSD" },
+      { "command": "gsd.openRoadmap", "title": "Open Roadmap", "category": "GSD" },
+      { "command": "gsd.openState",   "title": "Open State",   "category": "GSD" }
+    ]
+  },
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true,
