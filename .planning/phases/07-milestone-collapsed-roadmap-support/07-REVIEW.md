@@ -11,10 +11,10 @@ files_reviewed_list:
   - src/test/parsers/roadmap.test.ts
   - src/test/tree/provider.test.ts
 findings:
-  critical: 1
-  warning: 4
+  critical: 0
+  warning: 2
   info: 3
-  total: 8
+  total: 5
 status: issues_found
 ---
 
@@ -27,159 +27,124 @@ status: issues_found
 
 ## Summary
 
-Phase 7 adds collapsed-ROADMAP parsing (`## Progress` table + `## Milestones` section)
-and a Milestone → Phase tree hierarchy. The two-path dispatch (`hasDetailHeaders`),
-the flat-fallback layout, and the milestone id-collision dedup are all sound, and the
-regexes are linear (no catastrophic backtracking risk).
+Re-review after fixes for CR-01, WR-02, WR-03, and WR-04. All four prior findings
+are confirmed resolved:
 
-However there is a **BLOCKER**: the milestone label produced by the `## Milestones`
-parser and the `milestoneLabel` produced by the `## Progress` table parser use two
-different label vocabularies and never compare equal. This silently empties every
-milestone's phase list — both in the parser's own `milestones[].phases` and in the
-TreeView's per-milestone children. The bug is invisible to the current test suite
-because no test asserts cross-linking on the real fixture; `provider.test.ts` uses
-hand-built fixtures whose labels are forced to match.
+- **CR-01 (milestone↔phase join key mismatch) — RESOLVED.** The new `milestoneKey()`
+  helper (roadmap.ts:54-57) normalizes both the `## Milestones` bullet label and the
+  Progress-table milestone column to a leading `v\d+(.\d+)*` version token, and both
+  `parseCollapsedRoadmap` (roadmap.ts:224-231) and `provider._getRootChildren`
+  (provider.ts:276-279) join on it. Regression tests at roadmap.test.ts:145-160 and
+  provider.test.ts:683-701 lock the behavior in.
+- **WR-02 (rigid Progress-table column regex) — RESOLVED.** `splitTableCells` /
+  `findStatusColumn` / `parseProgressRow` replace the full-row regex; the 4-column
+  fixture and its tests (roadmap.test.ts:173-196) prove a missing "Plans Complete"
+  column no longer mis-maps the status cell.
+- **WR-03 (done-status literal matching) — RESOLVED.** `isDoneStatus()` (roadmap.ts:64-67)
+  accepts `Complete|Completed|Done|Shipped` case-insensitively plus `✅`; covered by
+  roadmap.test.ts:163-170.
+- **WR-04 (collapsed phase headerLine: 0 navigation) — RESOLVED.** Collapsed phases
+  carry `headerLine: 0`; provider.ts:150-154 omits the `openRoadmap` line argument
+  when `headerLine < 1`. The `RoadmapPhase.headerLine` JSDoc (types.ts:17-23) now
+  documents the sentinel. Verified by provider.test.ts:703-712.
 
-## Critical Issues
-
-### CR-01: Milestone label vs. Progress `milestoneLabel` never match — milestone phase lists silently empty
-
-**File:** `src/parsers/roadmap.ts:122-127`, cross-referenced with `src/tree/provider.ts:268`
-**Issue:**
-`parseMilestonesSection` builds `RoadmapMilestone.label` from the bold text of a
-`## Milestones` bullet — e.g. fixture line `- ✅ **v1.0 Foundation** — Phases 1-4`
-yields `label = "v1.0 Foundation"`.
-
-`parseCollapsedRoadmap` builds each phase's `milestoneLabel` from **column 2** of the
-`## Progress` table — e.g. fixture row `| 1-4. Foundation Setup | v1.0 | 4/4 | ... |`
-yields `milestoneLabel = "v1.0"`.
-
-The grouping step then does:
-```ts
-ms.phases = data.phases
-  .filter((p) => p.milestoneLabel === ms.label)   // "v1.0" === "v1.0 Foundation" → false
-  .map((p) => p.number);
-```
-`"v1.0"` never equals `"v1.0 Foundation"`, so **every milestone ends up with
-`phases: []`**. The identical mismatch occurs in `provider.ts:268`
-(`state.roadmap.phases.filter(p => p.milestoneLabel === ms.label)`), so in the
-milestone-grouped TreeView every milestone node renders with **zero phase children**
-and `isActive` is always `false` (no phase number can match).
-
-This is the core feature of the phase (Milestone → Phase hierarchy) failing on the
-exact `collapsed-roadmap.md` fixture shipped with the phase. The tests pass only
-because `roadmap.test.ts` never asserts `data.milestones[*].phases`, and
-`provider.test.ts`'s `makeMilestoneState` hand-sets matching labels
-(`milestoneLabel: 'v1.0 Alpha'` == `label: 'v1.0 Alpha'`), masking the real grammar.
-
-**Fix:** Pick one canonical join key. The Progress table's column-2 short code
-(`v1.0`) is the reliable machine key; the `## Milestones` bullet label is descriptive
-prose. Match on a normalized version-prefix rather than full-string equality. For
-example, derive the version token from the milestone label and compare:
-```ts
-// Extract leading version token: "v1.0 Foundation" -> "v1.0"
-function milestoneKey(label: string): string {
-  return (label.match(/^v\d+(?:\.\d+)?/)?.[0] ?? label).toLowerCase();
-}
-// grouping in parseCollapsedRoadmap:
-ms.phases = data.phases
-  .filter((p) => milestoneKey(p.milestoneLabel ?? '') === milestoneKey(ms.label))
-  .map((p) => p.number);
-```
-Apply the same `milestoneKey` comparison in `provider.ts:268`. Add a parser test
-asserting `data.milestones.find(m => m.label === 'v1.0 Foundation').phases` is
-non-empty, and a provider test where the milestone label and the phase
-`milestoneLabel` differ in the same way the real fixture does.
+No new BLOCKER-level defects were introduced by the fixes. Two WARNING-level issues
+and three INFO items remain — none block shipping, but the milestone-grouping
+fallback gap (WR-01 below) narrows rather than eliminates the original CR-01 failure
+class and is worth addressing before this layout reaches users with non-version
+milestone labels.
 
 ## Warnings
 
-### WR-01: `parseMilestonesSection` is run twice over the full line array
+### WR-01: Collapsed-roadmap phases vanish from the tree when a milestone label has no version token
 
-**File:** `src/parsers/roadmap.ts:90` and `src/parsers/roadmap.ts:157`
-**Issue:** Both the collapsed path and the expanded path call
-`parseMilestonesSection(lines)`. That is fine functionally, but the collapsed path
-(`parseCollapsedRoadmap`) also independently re-scans all lines for the H1 and again
-for the Progress table — three full passes plus the two passes already done in
-`parseRoadmap`. For the <100ms budget in CLAUDE.md this is acceptable on typical
-files, but it is avoidable churn and makes the control flow harder to follow.
-**Fix:** Consolidate the H1 / Milestones / Progress scans in `parseCollapsedRoadmap`
-into a single `for` loop with section-state flags, mirroring the single-pass style of
-the expanded branch.
+**File:** `src/parsers/roadmap.ts:54-57`, `src/parsers/roadmap.ts:224-231`, `src/tree/provider.ts:276-279`
+**Issue:** `milestoneKey()` falls back to the *full normalized label* when no leading
+`v\d+` token is present. This produces an asymmetric join failure: a `## Milestones`
+bullet label like `"Foundation Phase"` normalizes to `"foundation phase"`, while the
+Progress-table milestone column for the same milestone is typically a short token
+(`"M1"`, `"Foundation"`, or empty) that normalizes to something else. The two keys
+will not be equal, so `parseCollapsedRoadmap` (roadmap.ts:227-229) assigns that
+milestone an empty `phases` list, and `provider._getRootChildren` (provider.ts:277-279)
+renders a milestone node with **zero phase children** — the phases silently disappear
+(they are not re-shown via the flat fallback, because `data.milestones` is still
+non-empty so the flat branch at provider.ts:295-303 is skipped). The "CR-01: no
+milestone has an empty phases list" test only exercises version-token labels, so this
+gap is untested. CR-01 was downgraded from "always broken" to "broken for a narrower
+input class," not eliminated.
+**Fix:** Detect unjoined phases after grouping and surface them so no phase is ever
+dropped — either revert to flat layout when any phase is orphaned, or add a synthetic
+catch-all milestone:
+```ts
+// after the grouping loop in parseCollapsedRoadmap:
+const assigned = new Set(data.milestones.flatMap(m => m.phases));
+const orphans = data.phases.filter(p => !assigned.has(p.number));
+if (orphans.length > 0) {
+  data.milestones.push({ label: 'Unassigned', phases: orphans.map(p => p.number) });
+}
+```
+Also add a fixture/test where a milestone label carries no `v\d+` token.
 
-### WR-02: Progress-table parser does not validate column count — malformed rows silently mis-mapped
+### WR-02: Header detection in the Progress section can latch onto the separator row and silently mis-resolve `statusCol`
 
-**File:** `src/parsers/roadmap.ts:26-27, 107-118`
-**Issue:** `PROGRESS_ROW_PATTERN` hard-codes a 5-column layout
-(`Phase | Milestone | Plans | Status | Completed`) by matching `\|[^|]+\|` for the
-ignored "Plans Complete" column. If a real ROADMAP.md reorders columns or drops the
-"Plans Complete" column, the regex either fails to match (row dropped — phase lost
-with no diagnostic) or matches and assigns the wrong cell to `name` / `milestoneLabel`
-/ `done`. The status cell in particular is consumed by capture group 4; a 4-column
-table would put the *Completed date* there, so `done` is computed from a date string
-and is always `false`. There is no test for a non-canonical column order.
-**Fix:** Document the assumed column order in a comment at the regex, and add a
-fixture + test for at least a 4-column Progress table to pin the failure mode. If
-robustness matters, split the row on `|` and index columns by header-row position
-instead of a positional regex.
-
-### WR-03: `done` detection only recognizes the literal `Complete`
-
-**File:** `src/parsers/roadmap.ts:113`
-**Issue:** `done: /^complete$/i.test(m[4].trim())` treats only the exact word
-`Complete` as done. GSD Progress tables in the wild also use `Done`, `Shipped`, or a
-checkmark/`✅` in the status cell (the fixture's own `## Milestones` section uses
-`✅` and `shipped`). A milestone marked `Shipped` would be reported as not-done,
-flipping the tree icon from `check-all` to `milestone` and the phase icon from
-`pass-filled` to `circle-outline`.
-**Fix:** Broaden the test, e.g.
-`/^(complete|completed|done|shipped)$/i.test(s) || /✅/.test(s)`, and add a fixture
-row exercising a non-`Complete` status.
-
-### WR-04: Collapsed phases get `headerLine: 0`, producing a broken "Open Roadmap" jump
-
-**File:** `src/parsers/roadmap.ts:114-115`
-**Issue:** Collapsed-path phases are created with `headerLine: 0, endLine: 0`. In
-`provider.ts:145-149` every phase node wires a `gsd.openRoadmap` command with
-`arguments: [phase.headerLine]`. For a collapsed roadmap that argument is always `0`,
-so clicking any phase row jumps to line 0/1 of ROADMAP.md regardless of which phase
-was clicked — a silently wrong but non-crashing behavior. The expanded path correctly
-sets a 1-based `headerLine`.
-**Fix:** Either set `headerLine` to the 1-based index of the Progress-table row line
-(so the jump lands on the row), or have `provider.ts` suppress/alter the
-`gsd.openRoadmap` command when `headerLine === 0`. A `headerLine` of 0 is also an
-out-of-band sentinel that the type does not document — consider making it `number`
-with a comment, or `headerLine?: number`.
+**File:** `src/parsers/roadmap.ts:191-201`
+**Issue:** Inside `## Progress`, the code sets `sawHeader = true` on the *first* line
+where `splitTableCells` returns non-undefined, assuming it is the header row. For the
+shipped fixtures the header row is genuinely first, so this works. But the assumption
+is fragile: if a generator emits the separator row first, or the real header row lacks
+a leading `|` (and is therefore rejected by `splitTableCells`), then `findStatusColumn`
+runs on the separator cells (`['-------','-----------',...]`), finds no `status` cell,
+and silently falls back to index 3. In a 4-column table that maps the "Completed"
+column as status, marking every phase not-done with no diagnostic. The index-3 fallback
+masks the misparse instead of signaling it.
+**Fix:** Only treat a `|`-row as the header when at least one cell matches a known
+header name, and skip the table entirely if no header is ever found rather than
+guessing index 3:
+```ts
+if (!sawHeader) {
+  const headerCells = splitTableCells(line);
+  const looksLikeHeader = headerCells?.some(c => /^(phase|milestone|status)$/i.test(c.trim()));
+  if (headerCells && looksLikeHeader) {
+    statusCol = findStatusColumn(headerCells);
+    sawHeader = true;
+  }
+}
+```
 
 ## Info
 
-### IN-01: `milestoneLabel` is optional on `RoadmapPhase` but collapsed path always sets it; expanded path never does
+### IN-01: `milestoneKey` version regex permits multi-segment tokens broader than the documented `vX.Y` contract
 
-**File:** `src/parsers/types.ts:19`, `src/parsers/roadmap.ts`
-**Issue:** `milestoneLabel?` is correctly optional, but the split behavior (always
-present on the collapsed path, always absent on the expanded path even when an
-expanded roadmap has a `## Milestones` section) is undocumented. An expanded roadmap
-with a `## Milestones` section gets `data.milestones` populated (line 157-160) but
-its phases carry no `milestoneLabel`, so `provider.ts:268`'s filter yields empty
-milestone groups for expanded-with-milestones roadmaps too — same shape as CR-01.
-**Fix:** Document the invariant, and decide whether the expanded path should also
-populate `milestoneLabel` (it has the data once milestones + phases are known).
+**File:** `src/parsers/roadmap.ts:56`
+**Issue:** The pattern `^v\d+(?:\.\d+)*` greedily consumes every dotted segment, so a
+bullet label `"v1.0.1 Patch"` yields key `"v1.0.1"` while a Progress column of `"v1.0"`
+yields `"v1.0"` — no join. The CR-01 doc comment describes the column as "a bare
+version token (`v1.0`)"; a label with a patch segment would break the join. Real GSD
+milestones use `vMAJOR.MINOR` only, so this is currently latent.
+**Fix:** Constrain the key to two segments (`^v\d+(?:\.\d+)?`) to match the documented
+`vX.Y` shape, or document that label and column must share an identical version token.
 
-### IN-02: `parseMilestonesSection` ignores bullets indented or nested under the heading
+### IN-02: `splitTableCells` does not handle escaped pipes inside table cells
 
-**File:** `src/parsers/roadmap.ts:22, 59`
-**Issue:** `MILESTONE_BULLET_PATTERN` anchors on `^-\s+`, so any indented milestone
-bullet (sub-list) is skipped. Acceptable for the documented grammar, but worth a
-one-line comment so a future maintainer does not treat it as a bug.
-**Fix:** Add a comment noting only top-level bullets are recognized.
+**File:** `src/parsers/roadmap.ts:73-79`
+**Issue:** A plain `.split('|')` treats a `\|` escaped pipe inside a Markdown cell as a
+column boundary, shifting every subsequent cell by one and mis-mapping the status
+column. GSD Progress tables rarely contain pipes in phase names, so this is INFO not
+WARNING, but the assumption is undocumented.
+**Fix:** Note the "no escaped pipes" assumption in the function JSDoc, or split on
+`/(?<!\\)\|/` if escaped pipes ever occur in practice.
 
-### IN-03: Magic punctuation set duplicated across six directive regexes
+### IN-03: `parseProgressRow` can read a wrong status cell from a short data row once `statusCol` shrinks
 
-**File:** `src/parsers/roadmap.ts:31-35`
-**Issue:** `GOAL`, `MODE`, `DEPENDS_ON`, `REQUIREMENTS` each repeat the
-`(?:\*\*:|:\*\*)` punctuation alternation. Not a bug, but a single helper
-(`directive('Goal')`) building the RegExp would remove the duplication and the risk
-of the variants drifting apart.
-**Fix:** Extract a `makeDirective(name: string): RegExp` factory.
+**File:** `src/parsers/roadmap.ts:104, 115`
+**Issue:** The guard `cells.length <= statusCol` rejects rows shorter than the status
+column. With the default `statusCol = 3` a malformed 3-cell row is rejected. But once a
+4-column header sets `statusCol = 2`, a stray 3-cell row passes the guard and
+`isDoneStatus(cells[2])` reads whatever the 3rd cell holds (possibly a date), producing
+a wrong `done` flag rather than dropping the row. Behavior is bounded (no crash), so
+this is INFO.
+**Fix:** Optionally also require the milestone cell to be non-empty, or skip rows whose
+cell count differs from the header cell count.
 
 ---
 
