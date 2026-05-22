@@ -2,7 +2,7 @@
   "name": "gsd-status",
   "displayName": "GSD Status",
   "description": "Live GSD workflow state — milestone, phase, and recent activity — in your VS Code status bar.",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "publisher": "donutatx",
   "license": "MIT",
   "repository": {
