@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Tooltip, Commands + Configuration** - Complete status bar surface with hover tooltip, user commands in the Command Palette, and configurable settings (completed 2026-05-21)
 - [x] **Phase 5: Side Panel TreeView** - Activity Bar side panel listing all phases with active phase highlight, recent activity, and welcome view (completed 2026-05-21)
 - [x] **Phase 6: Packaging + Distribution** - Distributable .vsix build with verified size, compatibility, and documented install instructions (completed 2026-05-21)
+- [ ] **Phase 7: Milestone-Collapsed Roadmap Support** - Parser handles milestone-collapsed ROADMAP.md and the TreeView groups phases under their milestones (gap closure — extension errored on multi-milestone projects)
 
 ## Phase Details
 
@@ -115,16 +116,31 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 06-01-PLAN.md — Packaging toolchain: install @vscode/vsce, fix scripts + .vscodeignore, build verified .vsix
 - [x] 06-02-PLAN.md — Documentation: CHANGELOG.md v0.1.0 + expanded README.md with install/features/settings
 
+### Phase 7: Milestone-Collapsed Roadmap Support
+**Goal**: A developer with a multi-milestone GSD project sees the extension work correctly — phases grouped under their milestones — instead of "GSD: Error", because the parser handles a milestone-collapsed ROADMAP.md
+**Mode:** mvp
+**Depends on**: Phase 6
+**Requirements**: PARS-06, PARS-07, PANL-08
+**Success Criteria** (what must be TRUE):
+  1. Opening a project whose ROADMAP.md is milestone-collapsed (no `### Phase N:` detail headers; phases under `<details>` blocks plus a `## Progress` table) shows the phases — never the "GSD: Error" state
+  2. The parser sources the phase list from the `## Progress` table when no `### Phase N:` headers are present, and still parses normal expanded roadmaps unchanged
+  3. The parser extracts milestone grouping (which phases belong to which milestone) from the roadmap
+  4. The TreeView renders milestones as top-level nodes with their phases nested underneath; the active phase remains visually distinguished
+  5. This extension's own ROADMAP.md, once v1.0 is milestone-collapsed, is displayed correctly by the extension
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffold + Minimal Status Bar | 2/2 | Complete   | 2026-05-20 |
-| 2. Parsers + Tests | 0/2 | Not started | - |
+| 2. Parsers + Tests | 2/2 | Complete   | 2026-05-20 |
 | 3. StateController + File Watching | 2/2 | Complete   | 2026-05-21 |
 | 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
 | 5. Side Panel TreeView | 3/3 | Complete   | 2026-05-21 |
 | 6. Packaging + Distribution | 2/2 | Complete   | 2026-05-21 |
+| 7. Milestone-Collapsed Roadmap Support | 0/TBD | Not started | - |
