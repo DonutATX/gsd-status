@@ -128,7 +128,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The TreeView renders milestones as top-level nodes with their phases nested underneath; the active phase remains visually distinguished
   5. This extension's own ROADMAP.md, once v1.0 is milestone-collapsed, is displayed correctly by the extension
 **Plans**: 2 plans
-- [ ] 07-01-PLAN.md — TDD parser: two-path dispatch, collapsed-roadmap + milestone parsing (PARS-06, PARS-07)
+- [x] 07-01-PLAN.md — TDD parser: two-path dispatch, collapsed-roadmap + milestone parsing (PARS-06, PARS-07)
 - [ ] 07-02-PLAN.md — TDD tree provider: milestone node tier with active-milestone expansion + flat fallback (PANL-08)
 **UI hint**: yes
 
@@ -145,4 +145,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
 | 5. Side Panel TreeView | 3/3 | Complete   | 2026-05-21 |
 | 6. Packaging + Distribution | 2/2 | Complete   | 2026-05-21 |
-| 7. Milestone-Collapsed Roadmap Support | 0/2 | Not started | - |
+| 7. Milestone-Collapsed Roadmap Support | 1/2 | In progress | - |

@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-05-22T15:34:20.190Z"
-last_activity: 2026-05-22 -- Phase 7 planning complete
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-05-22T15:44:59.000Z"
+last_activity: 2026-05-22 -- Phase 07 Plan 01 complete (collapsed-roadmap parser)
 progress:
   total_phases: 8
   completed_phases: 6
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** A developer running GSD in a project can glance at VS Code and immediately know: which milestone, which phase, and what just happened — without leaving the editor.
-**Current focus:** Milestone complete
+**Current focus:** Phase 07 — Milestone-Collapsed Roadmap Support
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-22 -- Phase 7 planning complete
+Phase: 07 (Milestone-Collapsed Roadmap Support) — EXECUTING
+Plan: 2 of 2
+Status: Executing Phase 07
+Last activity: 2026-05-22 -- Phase 07 Plan 01 complete (collapsed-roadmap parser)
 
 Progress: [██████████] 100%
 
@@ -60,6 +60,7 @@ Progress: [██████████] 100%
 | Phase 04 P03 | 15 | 3 tasks | 4 files |
 | Phase 05 P02 | 12 | 3 tasks | 4 files |
 | Phase 05 P03 | 8 | 3 tasks | 4 files |
+| Phase 07 P01 | 10m | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 05-01]: Collect all LAST_ACT body matches into recentEntries array; first entry is lastEntry (additive, no breaking change)
 - [Phase ?]: GsdTreeItem zero-vscode-import discriminated union; TreeItem construction in provider.ts only
 - [Phase ?]: SVG icon uses checklist motif (24x24 viewBox, currentColor, single path, no width/height)
+- [Phase 07-01]: Two-path dispatch in parseRoadmap — zero `### Phase N:` headers routes to parseCollapsedRoadmap (Progress-table reader)
+- [Phase 07-01]: Omit the `milestones` key entirely when no `## Milestones` section exists — assigning undefined breaks assert.deepEqual flat-fallback
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-21T22:41:05.062Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-05-22T15:44:59.000Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None

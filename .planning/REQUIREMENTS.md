@@ -20,8 +20,8 @@
 - [ ] **PARS-03**: Parsers handle missing fields, partial files, and CRLF/LF line endings without throwing
 - [ ] **PARS-04**: Parser modules have unit tests (mocha + @vscode/test-cli) covering canonical, partial, and malformed inputs; no VS Code Extension Development Host required to run them
 - [ ] **PARS-05**: Parser regex avoids catastrophic backtracking — verified by a stress test with pathological input
-- [ ] **PARS-06**: ROADMAP.md parser handles a milestone-collapsed roadmap — when no `### Phase N:` detail headers are present, it sources the phase list (number, name, done status) from the `## Progress` table; it never returns zero phases for a valid collapsed roadmap. Expanded roadmaps continue to parse unchanged.
-- [ ] **PARS-07**: ROADMAP.md parser extracts milestone grouping — each phase is associated with the milestone it belongs to (from the `## Milestones` section and/or the `## Progress` table's milestone column), exposed on `RoadmapData`.
+- [x] **PARS-06**: ROADMAP.md parser handles a milestone-collapsed roadmap — when no `### Phase N:` detail headers are present, it sources the phase list (number, name, done status) from the `## Progress` table; it never returns zero phases for a valid collapsed roadmap. Expanded roadmaps continue to parse unchanged.
+- [x] **PARS-07**: ROADMAP.md parser extracts milestone grouping — each phase is associated with the milestone it belongs to (from the `## Milestones` section and/or the `## Progress` table's milestone column), exposed on `RoadmapData`.
 
 ### Workspace Detection & State
 
@@ -153,8 +153,8 @@ Updated during roadmap creation.
 | PKG-02 | Phase 6 | Complete |
 | PKG-03 | Phase 6 | Complete |
 | PKG-04 | Phase 6 | Complete |
-| PARS-06 | Phase 7 | Pending |
-| PARS-07 | Phase 7 | Pending |
+| PARS-06 | Phase 7 | Complete |
+| PARS-07 | Phase 7 | Complete |
 | PANL-08 | Phase 7 | Pending |
 
 **Coverage:**
