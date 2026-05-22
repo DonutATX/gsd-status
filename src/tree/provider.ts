@@ -267,9 +267,13 @@ export class GsdTreeProvider
 
     // Milestone-grouped layout when milestones array is present and non-empty
     if (state.roadmap.milestones && state.roadmap.milestones.length > 0) {
-      const ids = buildMilestoneIds(state.roadmap.milestones.map(ms => ms.label));
+      // WR-01: a synthetic "Other" milestone label is appended only when some
+      // phases failed to join any parsed milestone, so its id is computed in
+      // the same buildMilestoneIds pass to stay collision-deduplicated.
+      const milestoneLabels = state.roadmap.milestones.map(ms => ms.label);
+      const assigned = new Set<string>();
       const milestoneNodes: GsdTreeItem[] = state.roadmap.milestones.map(
-        (ms, i): GsdTreeItem => {
+        (ms): GsdTreeItem => {
           // CR-01: join on the version token — the Progress table milestone
           // column ("v1.0") never equals the Milestones bullet label
           // ("v1.0 Foundation") by full-string comparison.
@@ -277,17 +281,45 @@ export class GsdTreeProvider
           const msPhases = state.roadmap.phases.filter(
             p => milestoneKey(p.milestoneLabel ?? '') === msKey,
           );
+          for (const p of msPhases) {
+            assigned.add(p.number);
+          }
           const isActive = msPhases.some(p => p.number === state.state.phaseNumber);
           return {
             kind: 'milestone',
             label: ms.label,
-            id: ids[i],
+            // id assigned after the loop, once the full label list is known.
+            id: '',
             description: ms.description,
             isActive,
             phases: msPhases,
           };
         },
       );
+
+      // WR-01: collect any phase that joined no milestone (e.g. its
+      // milestoneLabel has no `v\d+` token and matches no `## Milestones`
+      // bullet). Without this, such phases vanish entirely — the flat
+      // fallback is skipped because `milestones` is non-empty. Surface them
+      // under a synthetic trailing "Other" milestone so no phase disappears.
+      const orphans = state.roadmap.phases.filter(p => !assigned.has(p.number));
+      if (orphans.length > 0) {
+        milestoneLabels.push('Other');
+        milestoneNodes.push({
+          kind: 'milestone',
+          label: 'Other',
+          id: '',
+          isActive: orphans.some(p => p.number === state.state.phaseNumber),
+          phases: orphans,
+        });
+      }
+
+      const ids = buildMilestoneIds(milestoneLabels);
+      milestoneNodes.forEach((node, i) => {
+        if (node.kind === 'milestone') {
+          node.id = ids[i];
+        }
+      });
       return [section, ...milestoneNodes];
     }
 

@@ -90,6 +90,24 @@ function findStatusColumn(headerCells: string[]): number {
 }
 
 /**
+ * WR-02: known Progress-table header cell names. A `|`-row is only treated as
+ * the header row when at least one of its cells matches one of these — this
+ * skips the Markdown separator row (`|---|---|`) and blank rows, so
+ * `findStatusColumn` never runs on separator cells and silently falls back to
+ * the wrong index.
+ */
+const PROGRESS_HEADER_NAMES = /^(phase|status|milestone|plans complete|completed)$/i;
+
+/**
+ * WR-02: true when a `|`-row is a recognizable Progress-table header row —
+ * i.e. at least one cell is a known header name. Separator rows (cells made
+ * only of `-`/`:`) and blank rows return false so header detection skips them.
+ */
+function isHeaderRow(cells: string[]): boolean {
+  return cells.some((c) => PROGRESS_HEADER_NAMES.test(c.trim()));
+}
+
+/**
  * WR-02: build a phase record from a Progress-table data row. Returns
  * undefined for non-data rows (header, separator, or rows without a
  * digit-prefixed phase cell). `statusCol` is the header-resolved Status
@@ -172,9 +190,11 @@ function parseCollapsedRoadmap(lines: string[]): RoadmapData {
     data.milestones = milestones;
   }
 
-  // `## Progress` table rows → phases. WR-02: the first `|`-row inside the
-  // section is the header — its "Status" cell position resolves statusCol so
-  // tables with extra/missing columns still map the status cell correctly.
+  // `## Progress` table rows → phases. WR-02: the header row is the first
+  // `|`-row whose cells contain a recognizable header name — the Markdown
+  // separator row (`|---|---|`) and blank rows are skipped, so its "Status"
+  // cell position resolves statusCol correctly even if the separator row
+  // appears first. Tables with extra/missing columns still map correctly.
   let inProgressSection = false;
   let statusCol = 3; // standard GSD position; overridden by the header row.
   let sawHeader = false;
@@ -191,12 +211,13 @@ function parseCollapsedRoadmap(lines: string[]): RoadmapData {
     if (inProgressSection) {
       if (!sawHeader) {
         const headerCells = splitTableCells(line);
-        if (headerCells) {
+        if (headerCells && isHeaderRow(headerCells)) {
           statusCol = findStatusColumn(headerCells);
           sawHeader = true;
         }
-        // The header row is never a data row (no digit-prefixed phase cell),
-        // so fall through — parseProgressRow returns undefined for it.
+        // Separator/blank `|`-rows are not headers — keep looking. The header
+        // row is never a data row (no digit-prefixed phase cell), so fall
+        // through — parseProgressRow returns undefined for it.
       }
       const row = parseProgressRow(line, statusCol);
       if (row) {

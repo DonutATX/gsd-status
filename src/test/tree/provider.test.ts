@@ -700,6 +700,81 @@ describe('GsdTreeProvider — milestone-grouped tree (PANL-08)', () => {
     assert.equal(ms2.isActive, false, 'v2.0 Next has no active phase');
   });
 
+  // WR-01 regression guard: a phase whose milestoneLabel matches no parsed
+  // `## Milestones` bullet must NOT silently disappear. The provider surfaces
+  // such orphans under a synthetic trailing "Other" milestone.
+  function makeOrphanPhaseState(): GsdState {
+    return {
+      kind: 'ok',
+      roadmap: {
+        projectName: 'Test Project',
+        milestones: [
+          { label: 'v1.0 Foundation', phases: ['1'], description: 'Phase 1' },
+        ],
+        phases: [
+          {
+            number: '1', name: 'Phase 1', goal: undefined, successCriteria: [],
+            done: true, headerLine: 0, endLine: 0, milestoneLabel: 'v1.0',
+          },
+          // "Backlog" has no `v\d+` token and matches no milestone bullet.
+          {
+            number: '2', name: 'Phase 2', goal: undefined, successCriteria: [],
+            done: false, headerLine: 0, endLine: 0, milestoneLabel: 'Backlog',
+          },
+        ],
+      },
+      state: { phaseNumber: '2', recentEntries: [] },
+    };
+  }
+
+  it('WR-01: an orphaned phase appears under a synthetic "Other" milestone', () => {
+    provider.update(makeOrphanPhaseState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const milestoneNodes = children.slice(1) as Extract<GsdTreeItem, { kind: 'milestone' }>[];
+    assert.equal(milestoneNodes.length, 2, 'expected the real milestone plus an "Other" node');
+    const other = milestoneNodes.find(m => m.label === 'Other');
+    assert.ok(other, 'a synthetic "Other" milestone must exist for the orphan phase');
+    const otherPhases = provider.getChildren(other) as Extract<GsdTreeItem, { kind: 'phase' }>[];
+    assert.equal(otherPhases.length, 1, '"Other" must own the orphaned phase');
+    assert.equal(otherPhases[0].phase.number, '2', 'orphaned phase 2 must still appear');
+  });
+
+  it('WR-01: every phase still appears even when its milestone fails to join', () => {
+    provider.update(makeOrphanPhaseState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const milestoneNodes = children.slice(1) as Extract<GsdTreeItem, { kind: 'milestone' }>[];
+    const shown = milestoneNodes.flatMap(
+      m => (provider.getChildren(m) as Extract<GsdTreeItem, { kind: 'phase' }>[]).map(p => p.phase.number),
+    );
+    assert.deepEqual(shown.sort(), ['1', '2'], 'no phase may silently disappear');
+  });
+
+  it('WR-01: the "Other" milestone is active when it holds the active phase', () => {
+    provider.update(makeOrphanPhaseState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const other = (children.slice(1) as Extract<GsdTreeItem, { kind: 'milestone' }>[])
+      .find(m => m.label === 'Other')!;
+    assert.equal(other.isActive, true, '"Other" owns active phase 2');
+  });
+
+  it('WR-01: no synthetic "Other" milestone when every phase joins a milestone', () => {
+    provider.update(makeMismatchedLabelState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const milestoneNodes = children.slice(1) as Extract<GsdTreeItem, { kind: 'milestone' }>[];
+    assert.ok(!milestoneNodes.some(m => m.label === 'Other'),
+      'no "Other" node when all phases are assigned');
+  });
+
+  it('WR-01: the "Other" milestone gets a deduplicated "milestone-" id', () => {
+    provider.update(makeOrphanPhaseState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const other = (children.slice(1) as Extract<GsdTreeItem, { kind: 'milestone' }>[])
+      .find(m => m.label === 'Other')!;
+    const item = provider.getTreeItem(other);
+    assert.ok(typeof item.id === 'string' && item.id.startsWith('milestone-'),
+      `"Other" milestone id must start with "milestone-", got "${item.id}"`);
+  });
+
   it('WR-04: collapsed phase (headerLine 0) gets an empty openRoadmap argument list', () => {
     provider.update(makeMismatchedLabelState());
     const children = provider.getChildren(undefined) as GsdTreeItem[];

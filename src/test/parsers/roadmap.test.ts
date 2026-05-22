@@ -195,6 +195,30 @@ describe('parseRoadmap — collapsed roadmap column tolerance (WR-02)', () => {
   });
 });
 
+describe('parseRoadmap — Progress header detection skips separator row (WR-02)', () => {
+  // The Markdown separator row (`|---|---|`) is the first `|`-row in this
+  // fixture's Progress table. Header detection must skip it and latch onto
+  // the real header row, so the "Status" column resolves to index 2 — not
+  // the index-3 fallback that would mis-read the "Completed" date column.
+  const data = parseRoadmap(load('collapsed-roadmap-separator-first.md'));
+
+  it('WR-02: parses both data rows despite the separator row appearing first', () => {
+    assert.equal(data.phases.length, 2, 'expected both Progress data rows');
+  });
+
+  it('WR-02: status column resolves correctly when the separator row is first', () => {
+    const p12 = data.phases.find((p) => p.number === '1-2');
+    const p3 = data.phases.find((p) => p.number === '3');
+    assert.equal(p12?.done, true, 'row 1-2 status "Complete" → done (not the date column)');
+    assert.equal(p3?.done, false, 'row 3 status "Not started" → not done');
+  });
+
+  it('WR-02: milestone column is read correctly when the separator row is first', () => {
+    const p12 = data.phases.find((p) => p.number === '1-2');
+    assert.equal(p12?.milestoneLabel, 'v1.0');
+  });
+});
+
 describe('parseRoadmap — directive punctuation styles (WR-01)', () => {
   it('accepts colon-outside style (**Goal**:)', () => {
     const data = parseRoadmap(
