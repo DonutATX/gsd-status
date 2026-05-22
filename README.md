@@ -34,7 +34,7 @@ Live GSD workflow state — milestone, phase, and recent activity — in your VS
 
 ### From .vsix (local)
 
-1. Download `gsd-status-0.1.0.vsix` (from the [releases page](https://github.com/DonutATX/gsd-extenstion/releases) or built from source).
+1. Download `gsd-status-1.0.0.vsix` (from the [releases page](https://github.com/DonutATX/gsd-status/releases) or built from source).
 2. Install via the Extensions panel (recommended):
    - Open the Extensions panel (`Ctrl+Shift+X`).
    - Click the `...` menu (top-right of the panel).
@@ -44,7 +44,7 @@ Live GSD workflow state — milestone, phase, and recent activity — in your VS
 3. Or install via the command line:
 
    ```bash
-   code --install-extension gsd-status-0.1.0.vsix
+   code --install-extension gsd-status-1.0.0.vsix
    ```
 
    Use the CLI that matches your editor (`code` for VS Code, `cursor` for Cursor),
@@ -63,11 +63,11 @@ The extension adds two settings under **GSD Status** (`Ctrl+,` → search "GSD")
 ## Build from Source
 
 ```bash
-git clone https://github.com/DonutATX/gsd-extenstion
-cd gsd-extenstion
+git clone https://github.com/DonutATX/gsd-status
+cd gsd-status
 npm install
 npm run package
-code --install-extension gsd-status-0.1.0.vsix
+code --install-extension gsd-status-1.0.0.vsix
 ```
 
 Requires Node.js `>=20` and VS Code `^1.95.0`.
