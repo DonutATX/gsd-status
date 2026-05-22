@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Tooltip, Commands + Configuration** - Complete status bar surface with hover tooltip, user commands in the Command Palette, and configurable settings (completed 2026-05-21)
 - [x] **Phase 5: Side Panel TreeView** - Activity Bar side panel listing all phases with active phase highlight, recent activity, and welcome view (completed 2026-05-21)
 - [x] **Phase 6: Packaging + Distribution** - Distributable .vsix build with verified size, compatibility, and documented install instructions (completed 2026-05-21)
-- [ ] **Phase 7: Milestone-Collapsed Roadmap Support** - Parser handles milestone-collapsed ROADMAP.md and the TreeView groups phases under their milestones (gap closure — extension errored on multi-milestone projects)
+- [x] **Phase 7: Milestone-Collapsed Roadmap Support** - Parser handles milestone-collapsed ROADMAP.md and the TreeView groups phases under their milestones (gap closure — extension errored on multi-milestone projects) (completed 2026-05-22)
 
 ## Phase Details
 
@@ -129,7 +129,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. This extension's own ROADMAP.md, once v1.0 is milestone-collapsed, is displayed correctly by the extension
 **Plans**: 2 plans
 - [x] 07-01-PLAN.md — TDD parser: two-path dispatch, collapsed-roadmap + milestone parsing (PARS-06, PARS-07)
-- [ ] 07-02-PLAN.md — TDD tree provider: milestone node tier with active-milestone expansion + flat fallback (PANL-08)
+- [x] 07-02-PLAN.md — TDD tree provider: milestone node tier with active-milestone expansion + flat fallback (PANL-08)
 **UI hint**: yes
 
 ## Progress
@@ -145,4 +145,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 4. Tooltip, Commands + Configuration | 3/3 | Complete   | 2026-05-21 |
 | 5. Side Panel TreeView | 3/3 | Complete   | 2026-05-21 |
 | 6. Packaging + Distribution | 2/2 | Complete   | 2026-05-21 |
-| 7. Milestone-Collapsed Roadmap Support | 1/2 | In progress | - |
+| 7. Milestone-Collapsed Roadmap Support | 2/2 | Complete   | 2026-05-22 |

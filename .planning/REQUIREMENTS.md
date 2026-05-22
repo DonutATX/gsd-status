@@ -54,7 +54,7 @@
 - [x] **PANL-05**: A welcome view shows "No GSD project found. Run `/gsd:new-project` to initialize." when no `.planning/` exists
 - [x] **PANL-06**: TreeView toolbar exposes a manual refresh action
 - [x] **PANL-07**: Tree refresh uses `EventEmitter`-based `onDidChangeTreeData` and does not fully collapse on every update (partial refresh / stable identities)
-- [ ] **PANL-08**: TreeView renders milestones as top-level nodes with their phases nested underneath; the active phase remains visually distinguished within its milestone group
+- [x] **PANL-08**: TreeView renders milestones as top-level nodes with their phases nested underneath; the active phase remains visually distinguished within its milestone group
 
 ### Commands
 
@@ -155,7 +155,7 @@ Updated during roadmap creation.
 | PKG-04 | Phase 6 | Complete |
 | PARS-06 | Phase 7 | Complete |
 | PARS-07 | Phase 7 | Complete |
-| PANL-08 | Phase 7 | Pending |
+| PANL-08 | Phase 7 | Complete |
 
 **Coverage:**
 - v1 requirements: 39 total
