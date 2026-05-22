@@ -14,4 +14,5 @@ export type GsdTreeItem =
   | { kind: 'goal';        text: string; phaseId: string }
   | { kind: 'criterion';   text: string; phaseId: string; index: number }
   | { kind: 'activity';    entry: StateEntry; index: number; id: string }
-  | { kind: 'placeholder'; label: string; id: string };
+  | { kind: 'placeholder'; label: string; id: string }
+  | { kind: 'milestone';   label: string; id: string; description?: string; isActive: boolean; phases: RoadmapPhase[] };

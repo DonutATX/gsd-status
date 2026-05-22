@@ -155,6 +155,21 @@ export class GsdTreeProvider
         item.id = element.id;
         return item;
       }
+
+      case 'milestone': {
+        const collapsibleState = element.isActive
+          ? vscode.TreeItemCollapsibleState.Expanded
+          : vscode.TreeItemCollapsibleState.Collapsed;
+        const allDone = element.phases.every(p => p.done);
+        const item = new vscode.TreeItem(element.label, collapsibleState);
+        item.id = element.id;
+        if (element.description) {
+          item.description = element.description;
+        }
+        item.iconPath = new vscode.ThemeIcon(allDone ? 'check-all' : 'milestone');
+        // No command — milestone nodes expand/collapse only
+        return item;
+      }
     }
   }
 
