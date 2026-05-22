@@ -57,6 +57,10 @@ describe('parseRoadmap — canonical', () => {
     const expected = lines.findIndex((l) => /^### Phase 1:/.test(l)) + 1;
     assert.equal(data.phases[0].headerLine, expected);
   });
+
+  it('milestones is undefined for canonical (expanded) roadmap — flat-fallback signal', () => {
+    assert.equal(data.milestones, undefined);
+  });
 });
 
 describe('parseRoadmap — robustness (PARS-03)', () => {
@@ -89,6 +93,50 @@ describe('parseRoadmap — robustness (PARS-03)', () => {
   it('supports decimal phase numbers', () => {
     const data = parseRoadmap('### Phase 2.1: x\n');
     assert.equal(data.phases[0].number, '2.1');
+  });
+});
+
+describe('parseRoadmap — collapsed roadmap (PARS-06, PARS-07)', () => {
+  const data = parseRoadmap(load('collapsed-roadmap.md'));
+
+  it('PARS-06: returns a non-empty phases array', () => {
+    assert.ok(data.phases.length > 0, 'expected non-empty phases array');
+  });
+
+  it('PARS-06: single-phase row has expected number and name', () => {
+    const phase5 = data.phases.find((p) => p.number === '5');
+    assert.ok(phase5, 'expected phase with number "5"');
+    assert.equal(phase5.name, 'Database Layer');
+  });
+
+  it('PARS-06: range row has correct number string and is done', () => {
+    const rangePhase = data.phases.find((p) => p.number === '1-4');
+    assert.ok(rangePhase, 'expected phase with number "1-4"');
+    assert.equal(rangePhase.done, true);
+  });
+
+  it('PARS-07: every collapsed phase has a milestoneLabel', () => {
+    for (const phase of data.phases) {
+      assert.ok(
+        typeof phase.milestoneLabel === 'string' && phase.milestoneLabel.length > 0,
+        `phase ${phase.number} is missing milestoneLabel`,
+      );
+    }
+  });
+
+  it('PARS-07: milestoneLabel matches Progress table column-2 value', () => {
+    const phase5 = data.phases.find((p) => p.number === '5');
+    assert.ok(phase5, 'expected phase with number "5"');
+    assert.equal(phase5.milestoneLabel, 'v1.1');
+  });
+
+  it('PARS-07: data.milestones is a non-empty array', () => {
+    assert.ok(Array.isArray(data.milestones) && data.milestones.length > 0);
+  });
+
+  it('PARS-07: a known milestone has the expected label', () => {
+    const ms = data.milestones?.find((m) => m.label === 'v1.0 Foundation');
+    assert.ok(ms, 'expected milestone with label "v1.0 Foundation"');
   });
 });
 
