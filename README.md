@@ -35,16 +35,21 @@ Live GSD workflow state — milestone, phase, and recent activity — in your VS
 ### From .vsix (local)
 
 1. Download `gsd-status-0.1.0.vsix` (from the [releases page](https://github.com/DonutATX/gsd-extenstion/releases) or built from source).
-2. Install via the command line:
+2. Install via the Extensions panel (recommended):
+   - Open the Extensions panel (`Ctrl+Shift+X`).
+   - Click the `...` menu (top-right of the panel).
+   - Select **Install from VSIX...** and choose the `.vsix` file.
+   - Reload the window when prompted.
+
+3. Or install via the command line:
 
    ```bash
    code --install-extension gsd-status-0.1.0.vsix
    ```
 
-3. Or install via the Extensions panel:
-   - Open the Extensions panel (`Ctrl+Shift+X`).
-   - Click the `...` menu (top-right of the panel).
-   - Select **Install from VSIX...** and choose the `.vsix` file.
+   Use the CLI that matches your editor (`code` for VS Code, `cursor` for Cursor),
+   and **quit the editor first** — installing while it is running can leave the
+   extension unregistered. The Extensions-panel method above avoids this entirely.
 
 ## Configuration
 
