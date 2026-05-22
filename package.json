@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DonutATX/gsd-extenstion"
+    "url": "https://github.com/DonutATX/gsd-status.git"
   },
   "engines": {
     "vscode": "^1.95.0"
