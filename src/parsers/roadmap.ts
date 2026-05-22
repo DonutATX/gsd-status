@@ -7,13 +7,24 @@
  */
 
 import { splitLines } from './lines.js';
-import type { RoadmapData, RoadmapPhase } from './types.js';
+import type { RoadmapData, RoadmapMilestone, RoadmapPhase } from './types.js';
 
 const DONE_BULLET = /^- \[[xX✅]\]\s+\*\*Phase\s+(\d+(?:\.\d+)?)/;
 const H1 = /^#\s+(.+?)\s*$/;
 const ROADMAP_PREFIX = /^Roadmap:\s*/;
 const MILESTONE = /^##\s+Milestone\s+(v\d+(?:\.\d+)?[^\r\n]*)$/;
 const PHASE_HEADER = /^###\s+Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\s*$/;
+
+// Collapsed-roadmap grammar — see 07-RESEARCH.md Patterns 2 & 3.
+const MILESTONES_HEADING = /^##\s+Milestones\s*$/;
+const H2_ANY = /^##\s+/;
+// `- ✅ **label**` or `- [x] **label**`, with an optional em-dash tail.
+const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|\[[xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
+const PROGRESS_HEADING = /^##\s+Progress\s*$/;
+// First cell must start with a digit — naturally excludes the header and
+// separator rows (RESEARCH Pitfall 3). Linear: no `.*` followed by `.*`.
+const PROGRESS_ROW_PATTERN =
+  /^\|\s*(\d+(?:-\d+)?)\.\s+([^|]+?)\s*\|\s*([^|]+?)\s*\|[^|]+\|\s*([^|]+?)\s*\|/;
 // Accept both `**Key:**` and `**Key**:` punctuation styles. Real GSD files
 // mix conventions (canonical ROADMAP.md uses `**Goal**:` and `**Mode:**` on
 // adjacent lines), so each directive tolerates either form.
@@ -25,19 +36,128 @@ const SUCCESS_HEADER = /^\*\*Success Criteria\*\*/;
 const SUCCESS_ITEM = /^\s+\d+\.\s+(.+?)\s*$/;
 const DIRECTIVE = /^\*\*/;
 
+/**
+ * Parse the `## Milestones` section into RoadmapMilestone records.
+ * Returns undefined when no `## Milestones` section is present — the
+ * flat-fallback signal. Total: never throws.
+ */
+function parseMilestonesSection(lines: string[]): RoadmapMilestone[] | undefined {
+  let inMilestonesSection = false;
+  let milestones: RoadmapMilestone[] | undefined;
+
+  for (const line of lines) {
+    if (MILESTONES_HEADING.test(line)) {
+      inMilestonesSection = true;
+      milestones = milestones ?? [];
+      continue;
+    }
+    if (inMilestonesSection && H2_ANY.test(line)) {
+      inMilestonesSection = false;
+      continue;
+    }
+    if (inMilestonesSection) {
+      const m = MILESTONE_BULLET_PATTERN.exec(line);
+      if (m && milestones) {
+        milestones.push({
+          label: m[1].trim(),
+          phases: [],
+          description: m[2]?.trim() || undefined,
+        });
+      }
+    }
+  }
+
+  return milestones;
+}
+
+/**
+ * Parse a milestone-collapsed roadmap: phases come from the `## Progress`
+ * table, milestones from the `## Milestones` section. Total: never throws;
+ * a missing Progress table yields phases: [].
+ */
+function parseCollapsedRoadmap(lines: string[]): RoadmapData {
+  const data: RoadmapData = { phases: [] };
+
+  // H1 project name.
+  for (const line of lines) {
+    const h1 = H1.exec(line);
+    if (h1) {
+      data.projectName = h1[1].replace(ROADMAP_PREFIX, '');
+      break;
+    }
+  }
+
+  const milestones = parseMilestonesSection(lines);
+  if (milestones !== undefined) {
+    data.milestones = milestones;
+  }
+
+  // `## Progress` table rows → phases.
+  let inProgressSection = false;
+  for (const line of lines) {
+    if (PROGRESS_HEADING.test(line)) {
+      inProgressSection = true;
+      continue;
+    }
+    if (inProgressSection && H2_ANY.test(line)) {
+      inProgressSection = false;
+      continue;
+    }
+    if (inProgressSection) {
+      const m = PROGRESS_ROW_PATTERN.exec(line);
+      if (m) {
+        data.phases.push({
+          number: m[1].trim(),
+          name: m[2].trim(),
+          milestoneLabel: m[3].trim(),
+          done: /^complete$/i.test(m[4].trim()),
+          headerLine: 0,
+          endLine: 0,
+        });
+      }
+    }
+  }
+
+  // Populate each milestone's phase-number list from grouped phases.
+  if (data.milestones) {
+    for (const ms of data.milestones) {
+      ms.phases = data.phases
+        .filter((p) => p.milestoneLabel === ms.label)
+        .map((p) => p.number);
+    }
+  }
+
+  return data;
+}
+
 export function parseRoadmap(text: string): RoadmapData {
   const lines = splitLines(text);
 
-  // Pass 1: collect done phase numbers.
+  // Pass 1: collect done phase numbers AND detect whether any detail headers exist.
   const done = new Set<string>();
+  let hasDetailHeaders = false;
   for (const line of lines) {
     const m = DONE_BULLET.exec(line);
     if (m) {
       done.add(m[1]);
     }
+    if (!hasDetailHeaders && PHASE_HEADER.test(line)) {
+      hasDetailHeaders = true;
+    }
+  }
+
+  // Collapsed roadmap: zero `### Phase N:` headers — source phases from Progress table.
+  if (!hasDetailHeaders) {
+    return parseCollapsedRoadmap(lines);
   }
 
   const data: RoadmapData = { phases: [] };
+
+  // Expanded roadmap: a `## Milestones` section, when present, still populates milestones.
+  const expandedMilestones = parseMilestonesSection(lines);
+  if (expandedMilestones !== undefined) {
+    data.milestones = expandedMilestones;
+  }
 
   // Pass 2: walk lines.
   let current: RoadmapPhase | undefined;
