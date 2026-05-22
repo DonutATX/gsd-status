@@ -1,0 +1,125 @@
+{
+  "name": "gsd-status",
+  "displayName": "GSD Status",
+  "description": "Live GSD workflow state — milestone, phase, and recent activity — in your VS Code status bar.",
+  "version": "1.0.0",
+  "publisher": "donutatx",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DonutATX/gsd-status.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "gsd",
+          "title": "GSD",
+          "icon": "resources/gsd-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "gsd": [
+        {
+          "id": "gsd.treeView",
+          "name": "GSD Workflow"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "gsd.treeView",
+        "contents": "No GSD project found. Run `/gsd:new-project` to initialize.",
+        "when": "!gsd.hasProject"
+      }
+    ],
+    "commands": [
+      {
+        "command": "gsd.refresh",
+        "title": "Refresh",
+        "category": "GSD"
+      },
+      {
+        "command": "gsd.openRoadmap",
+        "title": "Open Roadmap",
+        "category": "GSD"
+      },
+      {
+        "command": "gsd.openState",
+        "title": "Open State",
+        "category": "GSD"
+      },
+      {
+        "command": "gsd.refreshTree",
+        "title": "Refresh GSD tree",
+        "category": "GSD",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "gsd.refreshTree",
+          "when": "view == gsd.treeView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "GSD Status",
+      "properties": {
+        "gsd.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 30,
+          "minimum": 5,
+          "description": "Interval in seconds between automatic GSD file refreshes.",
+          "scope": "window"
+        },
+        "gsd.recentActivityCount": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Number of recent STATE.md entries to surface in the GSD side panel.",
+          "scope": "window"
+        }
+      }
+    }
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "Read-only display of GSD planning files."
+    },
+    "virtualWorkspaces": true
+  },
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\"",
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "test": "npm run compile && mocha \"out/test/**/*.test.js\"",
+    "test:parsers": "mocha \"out/test/parsers/**/*.test.js\"",
+    "package": "vsce package",
+    "vscode:prepublish": "npm run clean && npm run compile"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20",
+    "@types/vscode": "^1.95.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.1",
+    "mocha": "^11.7.5",
+    "typescript": "^5.8"
+  }
+}

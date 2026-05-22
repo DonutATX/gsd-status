@@ -1,0 +1,11 @@
+node_modules/
+out/
+.serena/
+*.vsix
+.vscode-test/
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets.json

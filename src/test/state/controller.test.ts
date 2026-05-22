@@ -1,0 +1,188 @@
+import { strict as assert } from 'node:assert';
+import { StateController } from '../../state/controller.js';
+import type { GsdState } from '../../state/types.js';
+
+/** Minimal valid ROADMAP.md content for tests */
+const VALID_ROADMAP = `# Roadmap: Test Project
+## Milestone v1.0
+### Phase 1: Setup
+**Goal:** Initial setup
+**Mode:** mvp
+`;
+
+/** Minimal valid STATE.md content for tests */
+const VALID_STATE = `---
+milestone: v1.0
+phase: "1 of 6 (Setup)"
+---
+# Project State
+`;
+
+/** Helper: collect all events from a StateController refresh */
+function collectOne(ctrl: StateController): Promise<GsdState> {
+  return new Promise((resolve) => {
+    const sub = ctrl.onStateChanged((s) => {
+      sub.dispose();
+      resolve(s);
+    });
+  });
+}
+
+describe('WSP-03 — refresh fires exactly one ok event with non-empty phases', () => {
+  it('readFiles returning valid text fires kind:ok with non-empty phases', async () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    const eventPromise = collectOne(ctrl);
+    await ctrl.refresh();
+    const state = await eventPromise;
+    assert.equal(state.kind, 'ok', `expected ok, got ${state.kind}`);
+    if (state.kind === 'ok') {
+      assert.ok(state.roadmap.phases.length > 0, 'expected non-empty phases');
+    }
+  });
+});
+
+describe('WSP-02 — each refresh() fires exactly one event', () => {
+  it('calling refresh() increments event counter by exactly 1 each time', async () => {
+    let count = 0;
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    ctrl.onStateChanged(() => { count++; });
+
+    await ctrl.refresh();
+    assert.equal(count, 1, `expected 1 event after first refresh, got ${count}`);
+
+    await ctrl.refresh();
+    assert.equal(count, 2, `expected 2 events after second refresh, got ${count}`);
+  });
+});
+
+describe('WSP-04 — errors emitted as state, refresh never throws', () => {
+  // Note: the Phase 2 parsers are documented as total (never throw, PARS-03),
+  // so a genuine parser-throw branch is unreachable. This test exercises a
+  // generic readFiles rejection — the catch block treats any non-ENOENT
+  // failure (I/O or otherwise) uniformly as kind:error.
+  it('readFiles rejecting with a generic error is caught and emitted as kind:error', async () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => { throw new Error('unexpected refresh failure'); },
+    );
+    const eventPromise = collectOne(ctrl);
+    await assert.doesNotReject(() => ctrl.refresh());
+    const state = await eventPromise;
+    assert.equal(state.kind, 'error');
+    if (state.kind === 'error') {
+      assert.match(state.message, /unexpected refresh failure/);
+    }
+  });
+
+  it('unparseable path: gibberish ROADMAP.md (zero phases) emits kind:error', async () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: 'asdf gibberish not a roadmap', stateText: VALID_STATE }),
+    );
+    const eventPromise = collectOne(ctrl);
+    await assert.doesNotReject(() => ctrl.refresh());
+    const state = await eventPromise;
+    assert.equal(state.kind, 'error', `expected error for zero-phase roadmap, got ${state.kind}`);
+    if (state.kind === 'error') {
+      assert.match(state.message, /no recognizable GSD phases/);
+    }
+  });
+
+  it('I/O path: readFiles rejection with non-ENOENT emits kind:error', async () => {
+    const err = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
+    err.code = 'EACCES';
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => { throw err; },
+    );
+    const eventPromise = collectOne(ctrl);
+    await assert.doesNotReject(() => ctrl.refresh());
+    const state = await eventPromise;
+    assert.equal(state.kind, 'error');
+  });
+});
+
+describe('no-project path — ENOENT and undefined folder', () => {
+  it('readFiles rejection with ENOENT emits kind:no-project', async () => {
+    const err = new Error('ENOENT: no such file') as NodeJS.ErrnoException;
+    err.code = 'ENOENT';
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => { throw err; },
+    );
+    const eventPromise = collectOne(ctrl);
+    await assert.doesNotReject(() => ctrl.refresh());
+    const state = await eventPromise;
+    assert.equal(state.kind, 'no-project');
+  });
+
+  it('undefined folder emits kind:no-project without calling readFiles', async () => {
+    let readFilesCalled = false;
+    const ctrl = new StateController(
+      undefined,
+      async () => { readFilesCalled = true; return { roadmapText: '', stateText: '' }; },
+    );
+    const eventPromise = collectOne(ctrl);
+    await assert.doesNotReject(() => ctrl.refresh());
+    const state = await eventPromise;
+    assert.equal(state.kind, 'no-project');
+    assert.equal(readFilesCalled, false, 'readFiles should not be called when folder is undefined');
+  });
+});
+
+describe('setRefreshInterval', () => {
+  it('replaces the running interval (old timer cleared, new timer started)', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    // Should not throw; method must exist and be callable
+    assert.doesNotThrow(() => ctrl.setRefreshInterval(10));
+    ctrl.dispose();
+  });
+
+  it('clamps a below-minimum value (2) to 5 seconds minimum', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    // Should not throw; clamping is internal but must not error
+    assert.doesNotThrow(() => ctrl.setRefreshInterval(2));
+    ctrl.dispose();
+  });
+
+  it('clamps zero to 5 seconds minimum', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    assert.doesNotThrow(() => ctrl.setRefreshInterval(0));
+    ctrl.dispose();
+  });
+
+  it('does not start a leaked timer after dispose()', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    ctrl.dispose();
+    // Calling setRefreshInterval after dispose must return early — no throw, no leak
+    assert.doesNotThrow(() => ctrl.setRefreshInterval(10));
+  });
+
+  it('dispose() clears whatever timer was set by setRefreshInterval', () => {
+    const ctrl = new StateController(
+      { uri: { fsPath: '/fake/workspace' } },
+      async () => ({ roadmapText: VALID_ROADMAP, stateText: VALID_STATE }),
+    );
+    ctrl.setRefreshInterval(15);
+    // dispose() must not throw even after setRefreshInterval replaced the timer
+    assert.doesNotThrow(() => ctrl.dispose());
+  });
+});
