@@ -460,6 +460,210 @@ describe('GsdTreeProvider — getChildren for Recent Activity section (PANL-04)'
 });
 
 // ---------------------------------------------------------------------------
+// PANL-08: Milestone-grouped tree
+// ---------------------------------------------------------------------------
+
+describe('GsdTreeProvider — milestone-grouped tree (PANL-08)', () => {
+  // Two-milestone roadmap where phase 2 is active (milestone "v1.0" is active,
+  // milestone "v2.0" is pending). All v1.0 phases are not done; v2.0 phases are
+  // also pending.
+  function makeMilestoneState(activePhase = '2'): GsdState {
+    return {
+      kind: 'ok',
+      roadmap: {
+        projectName: 'Test Project',
+        milestones: [
+          { label: 'v1.0 Alpha', phases: ['1', '2'], description: 'Phases 1-2' },
+          { label: 'v2.0 Beta', phases: ['3'], description: 'Phase 3' },
+        ],
+        phases: [
+          {
+            number: '1',
+            name: 'Phase 1: Setup',
+            goal: 'Setup goal',
+            successCriteria: ['Criterion A'],
+            done: true,
+            headerLine: 1,
+            endLine: 10,
+            milestoneLabel: 'v1.0 Alpha',
+          },
+          {
+            number: '2',
+            name: 'Phase 2: Parsers',
+            goal: 'Parse goal',
+            successCriteria: [],
+            done: false,
+            headerLine: 11,
+            endLine: 25,
+            milestoneLabel: 'v1.0 Alpha',
+          },
+          {
+            number: '3',
+            name: 'Phase 3: Controller',
+            goal: undefined,
+            successCriteria: [],
+            done: false,
+            headerLine: 26,
+            endLine: 40,
+            milestoneLabel: 'v2.0 Beta',
+          },
+        ],
+      },
+      state: {
+        phaseNumber: activePhase,
+        recentEntries: [
+          { text: 'Did something', timestamp: '2026-05-22', raw: 'Last activity: 2026-05-22 — Did something' },
+        ],
+      },
+    };
+  }
+
+  // Milestone state where all v1.0 phases are done (for check-all icon test)
+  function makeAllDoneMilestoneState(): GsdState {
+    const s = makeMilestoneState('3');
+    if (s.kind === 'ok') {
+      s.roadmap.phases[0].done = true;
+      s.roadmap.phases[1].done = true;
+    }
+    return s;
+  }
+
+  let provider: GsdTreeProvider;
+
+  beforeEach(() => {
+    provider = new GsdTreeProvider();
+  });
+
+  afterEach(() => {
+    provider.dispose();
+  });
+
+  it('getChildren(undefined) with milestones: first child is section node', () => {
+    provider.update(makeMilestoneState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    assert.ok(children.length > 0, 'expected children');
+    assert.equal(children[0].kind, 'section', 'first child must be section');
+  });
+
+  it('getChildren(undefined) with milestones: top-level has one node per milestone after section', () => {
+    provider.update(makeMilestoneState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const nonSection = children.slice(1);
+    assert.equal(nonSection.length, 2, 'expected 2 milestone nodes');
+    assert.ok(nonSection.every(c => c.kind === 'milestone'), 'all non-section top-level nodes must be milestone kind');
+  });
+
+  it('getChildren(milestoneNode) returns only phases for that milestone', () => {
+    provider.update(makeMilestoneState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms1 = children[1] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    const ms2 = children[2] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    assert.equal(ms1.kind, 'milestone');
+    const ms1Phases = provider.getChildren(ms1) as GsdTreeItem[];
+    const ms2Phases = provider.getChildren(ms2) as GsdTreeItem[];
+    assert.equal(ms1Phases.length, 2, 'v1.0 Alpha has 2 phases');
+    assert.equal(ms2Phases.length, 1, 'v2.0 Beta has 1 phase');
+    assert.ok(ms1Phases.every(c => c.kind === 'phase'), 'milestone children must be phase nodes');
+  });
+
+  it('milestone containing active phase has isActive: true', () => {
+    provider.update(makeMilestoneState('2'));
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms1 = children[1] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    const ms2 = children[2] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    assert.equal(ms1.isActive, true, 'v1.0 Alpha should be active (contains phase 2)');
+    assert.equal(ms2.isActive, false, 'v2.0 Beta should not be active');
+  });
+
+  it('active milestone TreeItem has Expanded collapsibleState', () => {
+    provider.update(makeMilestoneState('2'));
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const activeMilestone = (children.slice(1) as Extract<GsdTreeItem, { kind: 'milestone' }>[])
+      .find(n => n.isActive)!;
+    const item = provider.getTreeItem(activeMilestone);
+    assert.equal(item.collapsibleState, vscode.TreeItemCollapsibleState.Expanded,
+      'active milestone must be Expanded');
+  });
+
+  it('non-active milestone TreeItem has Collapsed collapsibleState', () => {
+    provider.update(makeMilestoneState('2'));
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const inactiveMilestones = (children.slice(1) as Extract<GsdTreeItem, { kind: 'milestone' }>[])
+      .filter(n => !n.isActive);
+    for (const ms of inactiveMilestones) {
+      const item = provider.getTreeItem(ms);
+      assert.equal(item.collapsibleState, vscode.TreeItemCollapsibleState.Collapsed,
+        `inactive milestone "${ms.label}" must be Collapsed`);
+    }
+  });
+
+  it('milestone where all phases done: getTreeItem uses ThemeIcon("check-all")', () => {
+    provider.update(makeAllDoneMilestoneState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms1 = children[1] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    // All v1.0 phases are done
+    const item = provider.getTreeItem(ms1);
+    assert.ok(item.iconPath instanceof vscode.ThemeIcon, 'iconPath must be ThemeIcon');
+    assert.equal((item.iconPath as InstanceType<typeof vscode.ThemeIcon>).id, 'check-all',
+      'completed milestone must use check-all icon');
+  });
+
+  it('milestone with pending phases: getTreeItem uses ThemeIcon("milestone")', () => {
+    provider.update(makeMilestoneState('2'));
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms2 = children[2] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    // v2.0 Beta has pending phases
+    const item = provider.getTreeItem(ms2);
+    assert.ok(item.iconPath instanceof vscode.ThemeIcon, 'iconPath must be ThemeIcon');
+    assert.equal((item.iconPath as InstanceType<typeof vscode.ThemeIcon>).id, 'milestone',
+      'pending milestone must use milestone icon');
+  });
+
+  it('milestone TreeItem has no command (expand/collapse only)', () => {
+    provider.update(makeMilestoneState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms = children[1] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    const item = provider.getTreeItem(ms);
+    assert.equal(item.command, undefined, 'milestone item must have no command');
+  });
+
+  it('milestone TreeItem id starts with "milestone-"', () => {
+    provider.update(makeMilestoneState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    for (const child of children.slice(1)) {
+      const ms = child as Extract<GsdTreeItem, { kind: 'milestone' }>;
+      const item = provider.getTreeItem(ms);
+      assert.ok(typeof item.id === 'string' && item.id.startsWith('milestone-'),
+        `milestone id must start with "milestone-", got "${item.id}"`);
+    }
+  });
+
+  it('flat fallback: roadmap without milestones returns section + phase nodes', () => {
+    provider.update(makeOkState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    assert.equal(children[0].kind, 'section', 'first child is section');
+    const nonSection = children.slice(1);
+    assert.ok(nonSection.length > 0, 'flat layout must have phase nodes');
+    assert.ok(nonSection.every(c => c.kind === 'phase'), 'flat layout: all non-section nodes are phase kind');
+    assert.ok(!nonSection.some(c => (c as GsdTreeItem).kind === 'milestone'), 'flat layout: no milestone nodes');
+  });
+
+  it('active phase node inside milestone still has ThemeIcon("play")', () => {
+    provider.update(makeMilestoneState('2'));
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms1 = children[1] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    const msPhases = provider.getChildren(ms1) as GsdTreeItem[];
+    const activePhase = (msPhases as Extract<GsdTreeItem, { kind: 'phase' }>[])
+      .find(n => n.isActive)!;
+    assert.ok(activePhase, 'active phase node must exist inside milestone');
+    const item = provider.getTreeItem(activePhase);
+    assert.ok(item.iconPath instanceof vscode.ThemeIcon, 'iconPath must be ThemeIcon');
+    assert.equal((item.iconPath as InstanceType<typeof vscode.ThemeIcon>).id, 'play',
+      'active phase inside milestone must keep play icon');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // PANL-07: update() + onDidChangeTreeData + stable ids
 // ---------------------------------------------------------------------------
 
