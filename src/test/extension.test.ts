@@ -208,21 +208,34 @@ describe('activate() — gsd.openRoadmap honors line argument (WR-01)', () => {
     }
   }
 
-  it('passes a valid line through to the editor selection and reveal', async () => {
+  it('converts a 1-based line to a 0-based editor position', async () => {
     const rec = spyShowTextDocument();
     const cb = commandMap.get('gsd.openRoadmap') as (line?: number) => void;
     assert.ok(cb, 'gsd.openRoadmap callback must be registered');
+    // headerLine is 1-based (parser stores `i + 1`); vscode.Position is 0-based.
     cb(11);
     await flush();
     assert.equal(rec.selections.length, 1, 'editor.selection should be set once for a valid line');
     assert.equal(rec.revealed.length, 1, 'editor.revealRange should be called once for a valid line');
     const sel = rec.selections[0] as { active: { line: number } };
-    assert.equal(sel.active.line, 11, 'selection must target the requested line');
+    assert.equal(sel.active.line, 10, '1-based line 11 must map to 0-based Position line 10');
   });
 
-  it('ignores a negative / non-integer line argument (T-05-07)', async () => {
+  it('a phase header at file line 1 navigates to Position line 0', async () => {
     const rec = spyShowTextDocument();
     const cb = commandMap.get('gsd.openRoadmap') as (line?: number) => void;
+    // A `### Phase N:` header at array index 0 yields headerLine 1; the cursor
+    // must land ON the header (Position line 0), not one line below it.
+    cb(1);
+    await flush();
+    const sel = rec.selections[0] as { active: { line: number } };
+    assert.equal(sel.active.line, 0, 'headerLine 1 must land on the first line of the file');
+  });
+
+  it('ignores a zero / negative / non-integer line argument (T-05-07)', async () => {
+    const rec = spyShowTextDocument();
+    const cb = commandMap.get('gsd.openRoadmap') as (line?: number) => void;
+    cb(0);
     cb(-5);
     cb(2.7);
     cb();

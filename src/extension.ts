@@ -27,8 +27,10 @@ export function activate(context: vscode.ExtensionContext): void {
     : undefined;
 
   // Helper: open a file inside .planning/, show info message if absent.
-  // When `line` is a valid non-negative integer (threat T-05-07), the editor
-  // selection is moved there and the range revealed so the file scrolls to it.
+  // `line` is a 1-based line number (matching RoadmapPhase.headerLine, which the
+  // parser stores as `i + 1`). It is converted to a 0-based vscode.Position here.
+  // When `line` is a valid integer >= 1 (threat T-05-07), the editor selection is
+  // moved there and the range revealed so the file scrolls to it.
   async function openFile(filename: string, line?: number): Promise<void> {
     if (!planningBase) {
       vscode.window.showInformationMessage(`GSD: ${filename} not found in .planning/`);
@@ -38,8 +40,8 @@ export function activate(context: vscode.ExtensionContext): void {
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
       const editor = await vscode.window.showTextDocument(doc);
-      if (typeof line === 'number' && Number.isInteger(line) && line >= 0) {
-        const pos = new vscode.Position(line, 0);
+      if (typeof line === 'number' && Number.isInteger(line) && line >= 1) {
+        const pos = new vscode.Position(line - 1, 0);
         editor.selection = new vscode.Selection(pos, pos);
         editor.revealRange(new vscode.Range(pos, pos));
       }
