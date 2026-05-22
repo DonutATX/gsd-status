@@ -16,11 +16,19 @@ export interface RoadmapPhase {
   done: boolean;
   headerLine: number;
   endLine: number;
+  milestoneLabel?: string;
+}
+
+export interface RoadmapMilestone {
+  label: string;
+  phases: string[];
+  description?: string;
 }
 
 export interface RoadmapData {
   projectName?: string;
   milestoneLabel?: string;
+  milestones?: RoadmapMilestone[];
   phases: RoadmapPhase[];
 }
 
