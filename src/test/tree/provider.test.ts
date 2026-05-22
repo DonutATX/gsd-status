@@ -214,15 +214,23 @@ describe('GsdTreeProvider — getTreeItem for phase nodes (PANL-02)', () => {
     assert.equal(item.collapsibleState, vscode.TreeItemCollapsibleState.Expanded);
   });
 
-  it('non-active phases: collapsibleState is Collapsed', () => {
+  it('non-active phase WITH children: collapsibleState is Collapsed', () => {
     const children = provider.getChildren(undefined) as GsdTreeItem[];
-    const inactivePhases = (children.slice(1) as Extract<GsdTreeItem, { kind: 'phase' }>[])
-      .filter(n => !n.isActive);
-    for (const phase of inactivePhases) {
-      const item = provider.getTreeItem(phase);
-      assert.equal(item.collapsibleState, vscode.TreeItemCollapsibleState.Collapsed,
-        `phase ${phase.phase.number} should be Collapsed`);
-    }
+    // Phase 1 is non-active and carries a goal + success criteria.
+    const phase1 = (children.slice(1) as Extract<GsdTreeItem, { kind: 'phase' }>[])
+      .find(n => n.phase.number === '1')!;
+    const item = provider.getTreeItem(phase1);
+    assert.equal(item.collapsibleState, vscode.TreeItemCollapsibleState.Collapsed);
+  });
+
+  it('phase with no goal and no criteria: collapsibleState is None (no empty chevron)', () => {
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    // Phase 3 in the fixture has goal: undefined and successCriteria: [].
+    const phase3 = (children.slice(1) as Extract<GsdTreeItem, { kind: 'phase' }>[])
+      .find(n => n.phase.number === '3')!;
+    const item = provider.getTreeItem(phase3);
+    assert.equal(item.collapsibleState, vscode.TreeItemCollapsibleState.None,
+      'a childless phase node must not render an expand chevron');
   });
 
   it('phase TreeItem: id equals "phase-<number>"', () => {

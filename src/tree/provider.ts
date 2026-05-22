@@ -131,9 +131,17 @@ export class GsdTreeProvider
 
       case 'phase': {
         const { phase, isActive } = element;
-        const state = isActive
-          ? vscode.TreeItemCollapsibleState.Expanded
-          : vscode.TreeItemCollapsibleState.Collapsed;
+        // A phase node only has children when it carries a goal or success
+        // criteria. Collapsed/archived phases (parsed from a Progress-table
+        // row) have neither — give them `None` so VS Code does not render an
+        // expand chevron that opens to nothing.
+        const hasChildren =
+          !!phase.goal || (phase.successCriteria?.length ?? 0) > 0;
+        const state = !hasChildren
+          ? vscode.TreeItemCollapsibleState.None
+          : isActive
+            ? vscode.TreeItemCollapsibleState.Expanded
+            : vscode.TreeItemCollapsibleState.Collapsed;
         const item = new vscode.TreeItem(`${phase.number}: ${phase.name}`, state);
         item.id = `phase-${phase.number}`;
         if (isActive) {
