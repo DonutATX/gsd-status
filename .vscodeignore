@@ -24,4 +24,5 @@ CLAUDE.md
 .vscode-test.mjs
 .mocharc.cjs
 images/**
+!images/*.png
 **/.gitkeep
