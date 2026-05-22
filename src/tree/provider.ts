@@ -15,6 +15,36 @@ import type { StateEntry } from '../parsers/types.js';
 import type { GsdTreeItem } from './items.js';
 
 /**
+ * Produce a collision-resistant tree id for a milestone node.
+ *
+ * Lower-cases the label, collapses runs of non-alphanumeric characters to `-`,
+ * and trims leading/trailing `-`, then prefixes with `milestone-`.
+ * Example: "v1.0 Checklists & Callouts" → "milestone-v1-0-checklists-callouts"
+ *
+ * Deterministic output preserves the PANL-07 expansion-stability guarantee.
+ */
+function slugify(label: string): string {
+  return `milestone-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+}
+
+/**
+ * Build collision-deduplicated ids for a list of milestone labels.
+ *
+ * If two labels produce the same slug (rare in practice — real milestone labels
+ * contain version numbers), the 2nd+ collision appends `#N` to avoid VS Code
+ * silently dropping a milestone node (RESEARCH Pitfall 4).
+ */
+function buildMilestoneIds(labels: readonly string[]): string[] {
+  const seen = new Map<string, number>();
+  return labels.map((label) => {
+    const base = slugify(label);
+    const count = seen.get(base) ?? 0;
+    seen.set(base, count + 1);
+    return count === 0 ? base : `${base}#${count}`;
+  });
+}
+
+/**
  * WR-04: build a content-stable id fragment for a Recent Activity entry.
  *
  * Uses the entry timestamp plus a short FNV-1a hash of the raw line, so the
@@ -184,6 +214,21 @@ export class GsdTreeProvider
       return this._getActivityChildren();
     }
 
+    // Milestone node: return the phase nodes for this milestone
+    if (element.kind === 'milestone') {
+      if (this._state.kind !== 'ok') {
+        return [];
+      }
+      const activePhaseNumber = this._state.state.phaseNumber;
+      return element.phases.map(
+        (phase): GsdTreeItem => ({
+          kind: 'phase',
+          phase,
+          isActive: phase.number === activePhaseNumber,
+        }),
+      );
+    }
+
     // Phase node: return goal + criteria children
     if (element.kind === 'phase') {
       return this._getPhaseChildren(element);
@@ -208,13 +253,34 @@ export class GsdTreeProvider
       return [{ kind: 'placeholder', label: 'Error reading GSD files', id: 'error-placeholder' }];
     }
 
-    // ok state: [Recent Activity section, ...phase nodes]
+    // ok state: [Recent Activity section, ...milestone nodes OR ...phase nodes]
     const section: GsdTreeItem = {
       kind: 'section',
       label: 'Recent Activity',
       id: 'recent-activity-section',
     };
 
+    // Milestone-grouped layout when milestones array is present and non-empty
+    if (state.roadmap.milestones && state.roadmap.milestones.length > 0) {
+      const ids = buildMilestoneIds(state.roadmap.milestones.map(ms => ms.label));
+      const milestoneNodes: GsdTreeItem[] = state.roadmap.milestones.map(
+        (ms, i): GsdTreeItem => {
+          const msPhases = state.roadmap.phases.filter(p => p.milestoneLabel === ms.label);
+          const isActive = msPhases.some(p => p.number === state.state.phaseNumber);
+          return {
+            kind: 'milestone',
+            label: ms.label,
+            id: ids[i],
+            description: ms.description,
+            isActive,
+            phases: msPhases,
+          };
+        },
+      );
+      return [section, ...milestoneNodes];
+    }
+
+    // Flat fallback — no milestones section: existing phase-list layout (Phase 5)
     const phaseNodes: GsdTreeItem[] = state.roadmap.phases.map(
       (phase): GsdTreeItem => ({
         kind: 'phase',
