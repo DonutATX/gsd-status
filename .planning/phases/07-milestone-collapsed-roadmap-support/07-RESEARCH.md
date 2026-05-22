@@ -636,7 +636,7 @@ function slugify(label: string): string {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Progress table column order variation**
    - What we know: The canonical `training_data` ROADMAP.md has columns `Phase | Milestone | Plans Complete | Status | Completed`.
