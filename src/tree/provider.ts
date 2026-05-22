@@ -12,6 +12,7 @@
 import * as vscode from 'vscode';
 import type { GsdState } from '../state/types.js';
 import type { StateEntry } from '../parsers/types.js';
+import { milestoneKey } from '../parsers/roadmap.js';
 import type { GsdTreeItem } from './items.js';
 
 /**
@@ -142,10 +143,14 @@ export class GsdTreeProvider
         } else {
           item.iconPath = new vscode.ThemeIcon('circle-outline');
         }
+        // WR-04: collapsed-roadmap phases carry headerLine 0 — they have no
+        // `### Phase N:` detail section to scroll to. Omit the line argument
+        // for those so the command opens ROADMAP.md with no (wrong) jump;
+        // expanded phases keep their 1-based headerLine argument.
         item.command = {
           command: 'gsd.openRoadmap',
           title: 'Open Roadmap',
-          arguments: [phase.headerLine],
+          arguments: phase.headerLine >= 1 ? [phase.headerLine] : [],
         };
         return item;
       }
@@ -265,7 +270,13 @@ export class GsdTreeProvider
       const ids = buildMilestoneIds(state.roadmap.milestones.map(ms => ms.label));
       const milestoneNodes: GsdTreeItem[] = state.roadmap.milestones.map(
         (ms, i): GsdTreeItem => {
-          const msPhases = state.roadmap.phases.filter(p => p.milestoneLabel === ms.label);
+          // CR-01: join on the version token — the Progress table milestone
+          // column ("v1.0") never equals the Milestones bullet label
+          // ("v1.0 Foundation") by full-string comparison.
+          const msKey = milestoneKey(ms.label);
+          const msPhases = state.roadmap.phases.filter(
+            p => milestoneKey(p.milestoneLabel ?? '') === msKey,
+          );
           const isActive = msPhases.some(p => p.number === state.state.phaseNumber);
           return {
             kind: 'milestone',

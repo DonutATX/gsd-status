@@ -35,8 +35,8 @@ Full details archived in `milestones/v2.0-ROADMAP.md`.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-4. Foundation Setup | v1.0 | 4/4 | Complete | 2026-01-15 |
-| 5. Database Layer | v1.1 | 3/3 | Complete | 2026-02-20 |
-| 6. API Endpoints | v1.1 | 2/2 | Complete | 2026-02-28 |
-| 7. UI Polish | v1.2 | 1/1 | Complete | 2026-03-10 |
+| 5. Database Layer | v1.1 | 3/3 | Shipped | 2026-02-20 |
+| 6. API Endpoints | v1.1 | 2/2 | ✅ | 2026-02-28 |
+| 7. UI Polish | v1.2 | 1/1 | Done | 2026-03-10 |
 | 8. Search & Filter | v2.0 | 2/2 | Complete | 2026-03-25 |
 | 9. Export & Reports | v2.0 | 0/3 | Not started | - |

@@ -648,6 +648,69 @@ describe('GsdTreeProvider — milestone-grouped tree (PANL-08)', () => {
     assert.ok(!nonSection.some(c => (c as GsdTreeItem).kind === 'milestone'), 'flat layout: no milestone nodes');
   });
 
+  // CR-01 regression guard: in a real collapsed roadmap the milestone bullet
+  // label ("v1.0 Foundation") differs from the phase's milestoneLabel — the
+  // Progress-table version token ("v1.0"). The provider must still group
+  // phases under their milestone via the version-token join.
+  function makeMismatchedLabelState(): GsdState {
+    return {
+      kind: 'ok',
+      roadmap: {
+        projectName: 'Test Project',
+        milestones: [
+          { label: 'v1.0 Foundation', phases: ['1', '2'], description: 'Phases 1-2' },
+          { label: 'v2.0 Next', phases: ['3'], description: 'Phase 3' },
+        ],
+        phases: [
+          {
+            number: '1', name: 'Phase 1', goal: undefined, successCriteria: [],
+            done: true, headerLine: 0, endLine: 0, milestoneLabel: 'v1.0',
+          },
+          {
+            number: '2', name: 'Phase 2', goal: undefined, successCriteria: [],
+            done: false, headerLine: 0, endLine: 0, milestoneLabel: 'v1.0',
+          },
+          {
+            number: '3', name: 'Phase 3', goal: undefined, successCriteria: [],
+            done: false, headerLine: 0, endLine: 0, milestoneLabel: 'v2.0',
+          },
+        ],
+      },
+      state: { phaseNumber: '2', recentEntries: [] },
+    };
+  }
+
+  it('CR-01: milestone groups its phases when label differs from milestoneLabel token', () => {
+    provider.update(makeMismatchedLabelState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms1 = children[1] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    const ms2 = children[2] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    const ms1Phases = provider.getChildren(ms1) as GsdTreeItem[];
+    const ms2Phases = provider.getChildren(ms2) as GsdTreeItem[];
+    assert.equal(ms1Phases.length, 2, 'v1.0 Foundation must own phases 1 and 2');
+    assert.equal(ms2Phases.length, 1, 'v2.0 Next must own phase 3');
+  });
+
+  it('CR-01: milestone containing the active phase is active despite label mismatch', () => {
+    provider.update(makeMismatchedLabelState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms1 = children[1] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    const ms2 = children[2] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    assert.equal(ms1.isActive, true, 'v1.0 Foundation owns active phase 2');
+    assert.equal(ms2.isActive, false, 'v2.0 Next has no active phase');
+  });
+
+  it('WR-04: collapsed phase (headerLine 0) gets an empty openRoadmap argument list', () => {
+    provider.update(makeMismatchedLabelState());
+    const children = provider.getChildren(undefined) as GsdTreeItem[];
+    const ms1 = children[1] as Extract<GsdTreeItem, { kind: 'milestone' }>;
+    const phaseNode = (provider.getChildren(ms1) as Extract<GsdTreeItem, { kind: 'phase' }>[])[0];
+    const item = provider.getTreeItem(phaseNode);
+    assert.ok(item.command, 'phase item must still have a command');
+    assert.deepEqual(item.command!.arguments, [],
+      'collapsed phase must not pass a (wrong) line argument');
+  });
+
   it('active phase node inside milestone still has ThemeIcon("play")', () => {
     provider.update(makeMilestoneState('2'));
     const children = provider.getChildren(undefined) as GsdTreeItem[];

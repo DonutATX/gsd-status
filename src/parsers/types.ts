@@ -14,6 +14,12 @@ export interface RoadmapPhase {
   requirements?: string[];
   successCriteria?: string[];
   done: boolean;
+  /**
+   * 1-based line of the `### Phase N:` header in ROADMAP.md, used as the
+   * scroll target for the openRoadmap command. WR-04: collapsed-roadmap
+   * phases (sourced from the `## Progress` table) have no detail header —
+   * they carry the sentinel value `0`, meaning "no navigation target".
+   */
   headerLine: number;
   endLine: number;
   milestoneLabel?: string;

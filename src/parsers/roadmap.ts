@@ -21,10 +21,16 @@ const H2_ANY = /^##\s+/;
 // `- ✅ **label**` or `- [x] **label**`, with an optional em-dash tail.
 const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|\[[xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
 const PROGRESS_HEADING = /^##\s+Progress\s*$/;
-// First cell must start with a digit — naturally excludes the header and
-// separator rows (RESEARCH Pitfall 3). Linear: no `.*` followed by `.*`.
-const PROGRESS_ROW_PATTERN =
-  /^\|\s*(\d+(?:-\d+)?)\.\s+([^|]+?)\s*\|\s*([^|]+?)\s*\|[^|]+\|\s*([^|]+?)\s*\|/;
+// WR-02: A Progress table row, parsed by splitting on `|` rather than a rigid
+// full-row regex, so tables with extra/missing trailing columns still parse.
+// Standard GSD Progress columns (1-based after the leading `|`):
+//   col 1 = Phase ("1-4. Foundation Setup"), col 2 = Milestone ("v1.0"),
+//   col 3 = Plans Complete, col 4 = Status, col 5 = Completed.
+// Only the phase, milestone, and status cells are required; the row is kept
+// as long as cols 1, 2, and 4 are present. The phase cell must start with a
+// digit — this excludes the header row (starts with "Phase") and the
+// separator row (only `-`/`|`), see RESEARCH Pitfall 3.
+const PROGRESS_PHASE_CELL = /^(\d+(?:-\d+)?)\.\s+(.+)$/;
 // Accept both `**Key:**` and `**Key**:` punctuation styles. Real GSD files
 // mix conventions (canonical ROADMAP.md uses `**Goal**:` and `**Mode:**` on
 // adjacent lines), so each directive tolerates either form.
@@ -35,6 +41,80 @@ const REQUIREMENTS = /^\*\*Requirements(?:\*\*:|:\*\*)\s*(.+?)\s*$/;
 const SUCCESS_HEADER = /^\*\*Success Criteria\*\*/;
 const SUCCESS_ITEM = /^\s+\d+\.\s+(.+?)\s*$/;
 const DIRECTIVE = /^\*\*/;
+
+/**
+ * CR-01: derive a stable join key from a milestone reference.
+ *
+ * The `## Milestones` bullet label is descriptive prose
+ * (`"v1.0 Foundation"`), while the `## Progress` table's milestone column is
+ * a bare version token (`"v1.0"`). Both reference the same milestone, so we
+ * join on the leading version token (`v\d+(.\d+)*`). When a label has no
+ * version token we fall back to the full normalized label.
+ */
+export function milestoneKey(label: string): string {
+  const trimmed = label.trim();
+  return (trimmed.match(/^v\d+(?:\.\d+)*/)?.[0] ?? trimmed).toLowerCase();
+}
+
+/**
+ * WR-03: status-cell values that mean a phase/milestone is done. GSD Progress
+ * tables in the wild use `Complete`, `Completed`, `Done`, `Shipped`, or a `✅`
+ * checkmark — all are treated as done (case-insensitive).
+ */
+function isDoneStatus(status: string): boolean {
+  const s = status.trim();
+  return /^(complete|completed|done|shipped)$/i.test(s) || /✅/.test(s);
+}
+
+/**
+ * WR-02: split a `|`-delimited Markdown table row into trimmed cells, or
+ * undefined for a non-row line. Drops the leading/trailing `|`.
+ */
+function splitTableCells(line: string): string[] | undefined {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('|')) {
+    return undefined;
+  }
+  return trimmed.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+}
+
+/**
+ * WR-02: resolve the 0-based index of the Status column from a Progress-table
+ * header row. Falls back to the standard GSD position (index 3) when no
+ * "Status" header cell is found, so column reordering or a missing
+ * "Plans Complete" column does not mis-map the status cell.
+ */
+function findStatusColumn(headerCells: string[]): number {
+  const idx = headerCells.findIndex((c) => /^status$/i.test(c.trim()));
+  return idx >= 0 ? idx : 3;
+}
+
+/**
+ * WR-02: build a phase record from a Progress-table data row. Returns
+ * undefined for non-data rows (header, separator, or rows without a
+ * digit-prefixed phase cell). `statusCol` is the header-resolved Status
+ * column index. Tolerant of extra/missing trailing columns.
+ */
+function parseProgressRow(
+  line: string,
+  statusCol: number,
+): { number: string; name: string; milestoneLabel: string; done: boolean } | undefined {
+  const cells = splitTableCells(line);
+  // Required cells: phase (0), milestone (1), status (statusCol).
+  if (!cells || cells.length < 2 || cells.length <= statusCol) {
+    return undefined;
+  }
+  const phaseCell = PROGRESS_PHASE_CELL.exec(cells[0]);
+  if (!phaseCell) {
+    return undefined;
+  }
+  return {
+    number: phaseCell[1].trim(),
+    name: phaseCell[2].trim(),
+    milestoneLabel: cells[1],
+    done: isDoneStatus(cells[statusCol]),
+  };
+}
 
 /**
  * Parse the `## Milestones` section into RoadmapMilestone records.
@@ -92,11 +172,16 @@ function parseCollapsedRoadmap(lines: string[]): RoadmapData {
     data.milestones = milestones;
   }
 
-  // `## Progress` table rows → phases.
+  // `## Progress` table rows → phases. WR-02: the first `|`-row inside the
+  // section is the header — its "Status" cell position resolves statusCol so
+  // tables with extra/missing columns still map the status cell correctly.
   let inProgressSection = false;
+  let statusCol = 3; // standard GSD position; overridden by the header row.
+  let sawHeader = false;
   for (const line of lines) {
     if (PROGRESS_HEADING.test(line)) {
       inProgressSection = true;
+      sawHeader = false;
       continue;
     }
     if (inProgressSection && H2_ANY.test(line)) {
@@ -104,13 +189,27 @@ function parseCollapsedRoadmap(lines: string[]): RoadmapData {
       continue;
     }
     if (inProgressSection) {
-      const m = PROGRESS_ROW_PATTERN.exec(line);
-      if (m) {
+      if (!sawHeader) {
+        const headerCells = splitTableCells(line);
+        if (headerCells) {
+          statusCol = findStatusColumn(headerCells);
+          sawHeader = true;
+        }
+        // The header row is never a data row (no digit-prefixed phase cell),
+        // so fall through — parseProgressRow returns undefined for it.
+      }
+      const row = parseProgressRow(line, statusCol);
+      if (row) {
         data.phases.push({
-          number: m[1].trim(),
-          name: m[2].trim(),
-          milestoneLabel: m[3].trim(),
-          done: /^complete$/i.test(m[4].trim()),
+          number: row.number,
+          name: row.name,
+          milestoneLabel: row.milestoneLabel,
+          done: row.done,
+          // WR-04: collapsed phases have no `### Phase N:` detail section to
+          // navigate to. headerLine 0 is an intentional "no detail header"
+          // sentinel — provider.ts omits the openRoadmap command argument
+          // for it, so clicking a collapsed phase opens ROADMAP.md without
+          // a (wrong) scroll target.
           headerLine: 0,
           endLine: 0,
         });
@@ -119,10 +218,14 @@ function parseCollapsedRoadmap(lines: string[]): RoadmapData {
   }
 
   // Populate each milestone's phase-number list from grouped phases.
+  // CR-01: join on the version token (milestoneKey) — the Progress table's
+  // milestone column ("v1.0") and the Milestones bullet label
+  // ("v1.0 Foundation") never match by full-string equality.
   if (data.milestones) {
     for (const ms of data.milestones) {
+      const key = milestoneKey(ms.label);
       ms.phases = data.phases
-        .filter((p) => p.milestoneLabel === ms.label)
+        .filter((p) => milestoneKey(p.milestoneLabel ?? '') === key)
         .map((p) => p.number);
     }
   }

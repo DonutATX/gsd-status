@@ -138,6 +138,61 @@ describe('parseRoadmap — collapsed roadmap (PARS-06, PARS-07)', () => {
     const ms = data.milestones?.find((m) => m.label === 'v1.0 Foundation');
     assert.ok(ms, 'expected milestone with label "v1.0 Foundation"');
   });
+
+  // CR-01 regression guard: the `## Milestones` bullet labels
+  // ("v1.0 Foundation") differ from the Progress-table milestone column
+  // ("v1.0"), so a full-string join silently empties every milestone.
+  it('CR-01: milestone.phases is populated despite label vs token mismatch', () => {
+    const v10 = data.milestones?.find((m) => m.label === 'v1.0 Foundation');
+    const v11 = data.milestones?.find((m) => m.label === 'v1.1 Core Features');
+    const v12 = data.milestones?.find((m) => m.label === 'v1.2 Polish');
+    const v20 = data.milestones?.find((m) => m.label === 'v2.0 Next');
+    assert.deepEqual(v10?.phases, ['1-4'], 'v1.0 Foundation must own phase 1-4');
+    assert.deepEqual(v11?.phases, ['5', '6'], 'v1.1 Core Features must own phases 5 and 6');
+    assert.deepEqual(v12?.phases, ['7'], 'v1.2 Polish must own phase 7');
+    assert.deepEqual(v20?.phases, ['8', '9'], 'v2.0 Next must own phases 8 and 9');
+  });
+
+  it('CR-01: no milestone has an empty phases list', () => {
+    for (const ms of data.milestones ?? []) {
+      assert.ok(ms.phases.length > 0, `milestone "${ms.label}" has no phases`);
+    }
+  });
+
+  // WR-03: status cells use Complete / Shipped / ✅ / Done in the fixture.
+  it('WR-03: recognizes Shipped, ✅, and Done as done statuses', () => {
+    const byNumber = (n: string) => data.phases.find((p) => p.number === n);
+    assert.equal(byNumber('5')?.done, true, '"Shipped" must mean done');
+    assert.equal(byNumber('6')?.done, true, '"✅" must mean done');
+    assert.equal(byNumber('7')?.done, true, '"Done" must mean done');
+    assert.equal(byNumber('1-4')?.done, true, '"Complete" must mean done');
+    assert.equal(byNumber('9')?.done, false, '"Not started" must mean not done');
+  });
+});
+
+describe('parseRoadmap — collapsed roadmap column tolerance (WR-02)', () => {
+  const data = parseRoadmap(load('collapsed-roadmap-4col.md'));
+
+  it('WR-02: parses a 4-column Progress table (no "Plans Complete" column)', () => {
+    assert.equal(data.phases.length, 2, 'expected both rows of the 4-column table');
+  });
+
+  it('WR-02: status cell is read from the correct column in a 4-column table', () => {
+    const p12 = data.phases.find((p) => p.number === '1-2');
+    const p3 = data.phases.find((p) => p.number === '3');
+    assert.equal(p12?.done, true, 'row 1-2 status "Complete" → done');
+    assert.equal(p3?.done, false, 'row 3 status "Not started" → not done');
+  });
+
+  it('WR-02: milestone column is read correctly in a 4-column table', () => {
+    const p12 = data.phases.find((p) => p.number === '1-2');
+    assert.equal(p12?.milestoneLabel, 'v1.0');
+  });
+
+  it('WR-02 / CR-01: milestone grouping still works for a 4-column table', () => {
+    const v10 = data.milestones?.find((m) => m.label === 'v1.0 Foundation');
+    assert.deepEqual(v10?.phases, ['1-2']);
+  });
 });
 
 describe('parseRoadmap — directive punctuation styles (WR-01)', () => {
