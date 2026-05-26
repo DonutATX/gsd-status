@@ -270,6 +270,28 @@ describe('parseRoadmap — in-progress milestone bullets (#4)', () => {
     ]);
   });
 
+  it('infers milestoneLabel from "Phases N–M" in the bullet description when no ## Milestone H2 exists', () => {
+    // mcp_omni_connect layout: milestones live only as bullets with
+    // `Phases N–M` in the em-dash tail; `### Phase N:` blocks live flat
+    // under `## Phase Details` with no milestone parent header.
+    const data = parseRoadmap(
+      '# Roadmap: Sample\n' +
+        '## Milestones\n' +
+        '- ✅ **v3.1 Hardening** — Phases 28–32 (shipped)\n' +
+        '- 🚧 **v3.2 training_data** — Phases 33–38 (started)\n' +
+        '## Phase Details\n' +
+        '### Phase 28: Doc\n**Goal:** d\n' +
+        '### Phase 29.1: Hotfix\n**Goal:** h\n' +
+        '### Phase 33: Discovery\n**Goal:** disc\n' +
+        '### Phase 38: CI\n**Goal:** ci\n',
+    );
+    const find = (n: string) => data.phases.find((p) => p.number === n);
+    assert.equal(find('28')?.milestoneLabel, 'v3.1 Hardening');
+    assert.equal(find('29.1')?.milestoneLabel, 'v3.1 Hardening');
+    assert.equal(find('33')?.milestoneLabel, 'v3.2 training_data');
+    assert.equal(find('38')?.milestoneLabel, 'v3.2 training_data');
+  });
+
   it('includes a [ ] unchecked milestone in milestones[]', () => {
     const data = parseRoadmap(
       '## Milestones\n' +
