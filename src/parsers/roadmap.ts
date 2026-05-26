@@ -18,8 +18,12 @@ const PHASE_HEADER = /^###\s+Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\s*$/;
 // Collapsed-roadmap grammar — see 07-RESEARCH.md Patterns 2 & 3.
 const MILESTONES_HEADING = /^##\s+Milestones\s*$/;
 const H2_ANY = /^##\s+/;
-// `- ✅ **label**` or `- [x] **label**`, with an optional em-dash tail.
-const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|\[[xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
+// `- ✅ **label**`, `- 🚧 **label**`, `- [x] **label**`, or `- [ ] **label**`,
+// with an optional em-dash tail. Status markers cover shipped (✅), in-progress
+// (🚧), pending (⏳), and any GFM checkbox state — without this, in-progress
+// milestones like `- 🚧 **v3.2 ...**` are dropped from the milestones list and
+// their phases fall through to the synthetic "Other" bucket (#4).
+const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|🚧|⏳|\[[ xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
 const PROGRESS_HEADING = /^##\s+Progress\s*$/;
 // WR-02: A Progress table row, parsed by splitting on `|` rather than a rigid
 // full-row regex, so tables with extra/missing trailing columns still parse.

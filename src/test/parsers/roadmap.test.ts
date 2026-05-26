@@ -251,6 +251,36 @@ describe('parseRoadmap — expanded roadmap milestone inheritance (#4)', () => {
   });
 });
 
+describe('parseRoadmap — in-progress milestone bullets (#4)', () => {
+  // Real GSD ROADMAPs (e.g. mcp_omni_connect) mark the active milestone with
+  // 🚧 instead of ✅ or [x]. Without 🚧 in MILESTONE_BULLET_PATTERN the active
+  // milestone is dropped from the milestones list and its phases land under
+  // the synthetic "Other" bucket in the tree view.
+  it('includes a 🚧 in-progress milestone in milestones[]', () => {
+    const data = parseRoadmap(
+      '# Roadmap: Sample\n' +
+        '## Milestones\n' +
+        '- ✅ **v3.1 Hardening** — Phases 28–32\n' +
+        '- 🚧 **v3.2 training_data Service Integration** — Phases 33–38\n',
+    );
+    const labels = (data.milestones ?? []).map((m) => m.label);
+    assert.deepEqual(labels, [
+      'v3.1 Hardening',
+      'v3.2 training_data Service Integration',
+    ]);
+  });
+
+  it('includes a [ ] unchecked milestone in milestones[]', () => {
+    const data = parseRoadmap(
+      '## Milestones\n' +
+        '- [x] **v1.0 Done** — shipped\n' +
+        '- [ ] **v2.0 Planned** — upcoming\n',
+    );
+    const labels = (data.milestones ?? []).map((m) => m.label);
+    assert.deepEqual(labels, ['v1.0 Done', 'v2.0 Planned']);
+  });
+});
+
 describe('parseRoadmap — directive punctuation styles (WR-01)', () => {
   it('accepts colon-outside style (**Goal**:)', () => {
     const data = parseRoadmap(
