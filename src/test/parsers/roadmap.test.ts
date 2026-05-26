@@ -219,6 +219,38 @@ describe('parseRoadmap — Progress header detection skips separator row (WR-02)
   });
 });
 
+describe('parseRoadmap — expanded roadmap milestone inheritance (#4)', () => {
+  // Expanded ROADMAPs use `## Milestone vX.Y ...` H2 sections to group
+  // `### Phase N:` detail blocks. Each phase under such a section must
+  // inherit the milestone label so tree-view grouping can join phases to
+  // milestone bullets via milestoneKey(). Without this, every phase falls
+  // through to the synthetic "Other" milestone (issue #4).
+  it('assigns milestoneLabel from the current ## Milestone H2 section', () => {
+    const data = parseRoadmap(
+      '# Roadmap: Sample\n' +
+        '## Milestones\n' +
+        '- [x] **v1.0 Foundation** — initial release\n' +
+        '- [x] **v2.0 Next** — follow-up\n' +
+        '## Milestone v1.0 Foundation\n' +
+        '### Phase 1: A\n**Goal:** a\n' +
+        '### Phase 2: B\n**Goal:** b\n' +
+        '## Milestone v2.0 Next\n' +
+        '### Phase 3: C\n**Goal:** c\n',
+    );
+    const p1 = data.phases.find((p) => p.number === '1');
+    const p2 = data.phases.find((p) => p.number === '2');
+    const p3 = data.phases.find((p) => p.number === '3');
+    assert.equal(p1?.milestoneLabel, 'v1.0 Foundation');
+    assert.equal(p2?.milestoneLabel, 'v1.0 Foundation');
+    assert.equal(p3?.milestoneLabel, 'v2.0 Next');
+  });
+
+  it('leaves milestoneLabel undefined when no ## Milestone H2 precedes the phase', () => {
+    const data = parseRoadmap('### Phase 1: A\n**Goal:** a\n');
+    assert.equal(data.phases[0].milestoneLabel, undefined);
+  });
+});
+
 describe('parseRoadmap — directive punctuation styles (WR-01)', () => {
   it('accepts colon-outside style (**Goal**:)', () => {
     const data = parseRoadmap(

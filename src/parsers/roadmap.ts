@@ -286,6 +286,10 @@ export function parseRoadmap(text: string): RoadmapData {
   // Pass 2: walk lines.
   let current: RoadmapPhase | undefined;
   let collectingSuccess = false;
+  // Track the most recent `## Milestone vX.Y ...` H2 section so each phase
+  // detail block under it inherits the milestone label. Without this, expanded
+  // ROADMAPs render every phase under the synthetic "Other" milestone (#4).
+  let currentMilestoneLabel: string | undefined;
 
   const closeCurrent = (endIdx: number): void => {
     if (current) {
@@ -299,20 +303,23 @@ export function parseRoadmap(text: string): RoadmapData {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    if (!current) {
-      // Top-level: H1 title or milestone heading.
-      if (data.projectName === undefined) {
-        const h1 = H1.exec(line);
-        if (h1) {
-          data.projectName = h1[1].replace(ROADMAP_PREFIX, '');
-        }
+    if (!current && data.projectName === undefined) {
+      const h1 = H1.exec(line);
+      if (h1) {
+        data.projectName = h1[1].replace(ROADMAP_PREFIX, '');
       }
+    }
+
+    // A `## Milestone vX.Y ...` H2 closes any open phase and updates the
+    // milestone label inherited by subsequent `### Phase N:` blocks.
+    const ms = MILESTONE.exec(line);
+    if (ms) {
+      closeCurrent(i);
       if (data.milestoneLabel === undefined) {
-        const ms = MILESTONE.exec(line);
-        if (ms) {
-          data.milestoneLabel = ms[1];
-        }
+        data.milestoneLabel = ms[1];
       }
+      currentMilestoneLabel = ms[1];
+      continue;
     }
 
     const ph = PHASE_HEADER.exec(line);
@@ -324,6 +331,7 @@ export function parseRoadmap(text: string): RoadmapData {
         done: done.has(ph[1]),
         headerLine: i + 1,
         endLine: lines.length,
+        milestoneLabel: currentMilestoneLabel,
       };
       continue;
     }
