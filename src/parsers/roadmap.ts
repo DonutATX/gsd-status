@@ -18,9 +18,17 @@ const PHASE_HEADER = /^###\s+Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\s*$/;
 // Collapsed-roadmap grammar — see 07-RESEARCH.md Patterns 2 & 3.
 const MILESTONES_HEADING = /^##\s+Milestones\s*$/;
 const H2_ANY = /^##\s+/;
-// `- ✅ **label**` or `- [x] **label**`, with an optional em-dash tail.
-const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|\[[xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
+// `- ✅ **label**`, `- 🚧 **label**`, `- [x] **label**`, or `- [ ] **label**`,
+// with an optional em-dash tail. Status markers cover shipped (✅), in-progress
+// (🚧), pending (⏳), and any GFM checkbox state — without this, in-progress
+// milestones like `- 🚧 **v3.2 ...**` are dropped from the milestones list and
+// their phases fall through to the synthetic "Other" bucket (#4).
+const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|🚧|⏳|\[[ xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
 const PROGRESS_HEADING = /^##\s+Progress\s*$/;
+// `Phases 33–38`, `Phases 1-7.2`, with en-dash/em-dash/hyphen. Used to infer
+// phase→milestone membership when the ROADMAP has no `## Milestone vX.Y` H2
+// headers (mcp_omni_connect layout).
+const PHASE_RANGE = /Phases?\s+(\d+(?:\.\d+)?)\s*[–—-]\s*(\d+(?:\.\d+)?)/;
 // WR-02: A Progress table row, parsed by splitting on `|` rather than a rigid
 // full-row regex, so tables with extra/missing trailing columns still parse.
 // Standard GSD Progress columns (1-based after the leading `|`):
@@ -286,6 +294,10 @@ export function parseRoadmap(text: string): RoadmapData {
   // Pass 2: walk lines.
   let current: RoadmapPhase | undefined;
   let collectingSuccess = false;
+  // Track the most recent `## Milestone vX.Y ...` H2 section so each phase
+  // detail block under it inherits the milestone label. Without this, expanded
+  // ROADMAPs render every phase under the synthetic "Other" milestone (#4).
+  let currentMilestoneLabel: string | undefined;
 
   const closeCurrent = (endIdx: number): void => {
     if (current) {
@@ -299,20 +311,23 @@ export function parseRoadmap(text: string): RoadmapData {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    if (!current) {
-      // Top-level: H1 title or milestone heading.
-      if (data.projectName === undefined) {
-        const h1 = H1.exec(line);
-        if (h1) {
-          data.projectName = h1[1].replace(ROADMAP_PREFIX, '');
-        }
+    if (!current && data.projectName === undefined) {
+      const h1 = H1.exec(line);
+      if (h1) {
+        data.projectName = h1[1].replace(ROADMAP_PREFIX, '');
       }
+    }
+
+    // A `## Milestone vX.Y ...` H2 closes any open phase and updates the
+    // milestone label inherited by subsequent `### Phase N:` blocks.
+    const ms = MILESTONE.exec(line);
+    if (ms) {
+      closeCurrent(i);
       if (data.milestoneLabel === undefined) {
-        const ms = MILESTONE.exec(line);
-        if (ms) {
-          data.milestoneLabel = ms[1];
-        }
+        data.milestoneLabel = ms[1];
       }
+      currentMilestoneLabel = ms[1];
+      continue;
     }
 
     const ph = PHASE_HEADER.exec(line);
@@ -324,6 +339,7 @@ export function parseRoadmap(text: string): RoadmapData {
         done: done.has(ph[1]),
         headerLine: i + 1,
         endLine: lines.length,
+        milestoneLabel: currentMilestoneLabel,
       };
       continue;
     }
@@ -373,6 +389,28 @@ export function parseRoadmap(text: string): RoadmapData {
   }
 
   closeCurrent(lines.length);
+
+  // Infer milestoneLabel for phases that weren't assigned by an H2 header.
+  // ROADMAPs without `## Milestone vX.Y` sections (e.g. mcp_omni_connect)
+  // express the phase→milestone link via the bullet description, like
+  // `**v3.2 ...** — Phases 33–38`. Without this pass, every detail phase
+  // falls into the synthetic "Other" bucket in the tree view (#4).
+  if (data.milestones && data.milestones.length > 0) {
+    const ranges = data.milestones.map((ms) => {
+      const m = ms.description ? PHASE_RANGE.exec(ms.description) : null;
+      return m ? { label: ms.label, start: parseFloat(m[1]), end: parseFloat(m[2]) } : null;
+    });
+    for (const phase of data.phases) {
+      if (phase.milestoneLabel !== undefined) {
+        continue;
+      }
+      const n = parseFloat(phase.number);
+      const hit = ranges.find((r) => r !== null && n >= r.start && n <= r.end);
+      if (hit) {
+        phase.milestoneLabel = hit.label;
+      }
+    }
+  }
 
   return data;
 }

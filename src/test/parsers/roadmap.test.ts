@@ -219,6 +219,90 @@ describe('parseRoadmap — Progress header detection skips separator row (WR-02)
   });
 });
 
+describe('parseRoadmap — expanded roadmap milestone inheritance (#4)', () => {
+  // Expanded ROADMAPs use `## Milestone vX.Y ...` H2 sections to group
+  // `### Phase N:` detail blocks. Each phase under such a section must
+  // inherit the milestone label so tree-view grouping can join phases to
+  // milestone bullets via milestoneKey(). Without this, every phase falls
+  // through to the synthetic "Other" milestone (issue #4).
+  it('assigns milestoneLabel from the current ## Milestone H2 section', () => {
+    const data = parseRoadmap(
+      '# Roadmap: Sample\n' +
+        '## Milestones\n' +
+        '- [x] **v1.0 Foundation** — initial release\n' +
+        '- [x] **v2.0 Next** — follow-up\n' +
+        '## Milestone v1.0 Foundation\n' +
+        '### Phase 1: A\n**Goal:** a\n' +
+        '### Phase 2: B\n**Goal:** b\n' +
+        '## Milestone v2.0 Next\n' +
+        '### Phase 3: C\n**Goal:** c\n',
+    );
+    const p1 = data.phases.find((p) => p.number === '1');
+    const p2 = data.phases.find((p) => p.number === '2');
+    const p3 = data.phases.find((p) => p.number === '3');
+    assert.equal(p1?.milestoneLabel, 'v1.0 Foundation');
+    assert.equal(p2?.milestoneLabel, 'v1.0 Foundation');
+    assert.equal(p3?.milestoneLabel, 'v2.0 Next');
+  });
+
+  it('leaves milestoneLabel undefined when no ## Milestone H2 precedes the phase', () => {
+    const data = parseRoadmap('### Phase 1: A\n**Goal:** a\n');
+    assert.equal(data.phases[0].milestoneLabel, undefined);
+  });
+});
+
+describe('parseRoadmap — in-progress milestone bullets (#4)', () => {
+  // Real GSD ROADMAPs (e.g. mcp_omni_connect) mark the active milestone with
+  // 🚧 instead of ✅ or [x]. Without 🚧 in MILESTONE_BULLET_PATTERN the active
+  // milestone is dropped from the milestones list and its phases land under
+  // the synthetic "Other" bucket in the tree view.
+  it('includes a 🚧 in-progress milestone in milestones[]', () => {
+    const data = parseRoadmap(
+      '# Roadmap: Sample\n' +
+        '## Milestones\n' +
+        '- ✅ **v3.1 Hardening** — Phases 28–32\n' +
+        '- 🚧 **v3.2 training_data Service Integration** — Phases 33–38\n',
+    );
+    const labels = (data.milestones ?? []).map((m) => m.label);
+    assert.deepEqual(labels, [
+      'v3.1 Hardening',
+      'v3.2 training_data Service Integration',
+    ]);
+  });
+
+  it('infers milestoneLabel from "Phases N–M" in the bullet description when no ## Milestone H2 exists', () => {
+    // mcp_omni_connect layout: milestones live only as bullets with
+    // `Phases N–M` in the em-dash tail; `### Phase N:` blocks live flat
+    // under `## Phase Details` with no milestone parent header.
+    const data = parseRoadmap(
+      '# Roadmap: Sample\n' +
+        '## Milestones\n' +
+        '- ✅ **v3.1 Hardening** — Phases 28–32 (shipped)\n' +
+        '- 🚧 **v3.2 training_data** — Phases 33–38 (started)\n' +
+        '## Phase Details\n' +
+        '### Phase 28: Doc\n**Goal:** d\n' +
+        '### Phase 29.1: Hotfix\n**Goal:** h\n' +
+        '### Phase 33: Discovery\n**Goal:** disc\n' +
+        '### Phase 38: CI\n**Goal:** ci\n',
+    );
+    const find = (n: string) => data.phases.find((p) => p.number === n);
+    assert.equal(find('28')?.milestoneLabel, 'v3.1 Hardening');
+    assert.equal(find('29.1')?.milestoneLabel, 'v3.1 Hardening');
+    assert.equal(find('33')?.milestoneLabel, 'v3.2 training_data');
+    assert.equal(find('38')?.milestoneLabel, 'v3.2 training_data');
+  });
+
+  it('includes a [ ] unchecked milestone in milestones[]', () => {
+    const data = parseRoadmap(
+      '## Milestones\n' +
+        '- [x] **v1.0 Done** — shipped\n' +
+        '- [ ] **v2.0 Planned** — upcoming\n',
+    );
+    const labels = (data.milestones ?? []).map((m) => m.label);
+    assert.deepEqual(labels, ['v1.0 Done', 'v2.0 Planned']);
+  });
+});
+
 describe('parseRoadmap — directive punctuation styles (WR-01)', () => {
   it('accepts colon-outside style (**Goal**:)', () => {
     const data = parseRoadmap(
