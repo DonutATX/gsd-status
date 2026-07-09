@@ -259,6 +259,23 @@ describe('parseRoadmap — collapsed phase-bullet fallback (PARSE-12)', () => {
     assert.deepEqual(v2?.phases, ['8', '9']);
   });
 
+  it('PARSE-12: accepts emoji and [~] markers on phase bullets', () => {
+    const d = parseRoadmap(
+      '# Roadmap: Markers\n' +
+        '## Phases\n' +
+        '- 🚧 **Phase 1: A**\n' +
+        '- ⏳ **Phase 2: B**\n' +
+        '- [X] **Phase 3: C**\n' +
+        '- [~] **Phase 4: D**\n',
+    );
+    const done = (n: string) => d.phases.find((p) => p.number === n)?.done;
+    assert.equal(d.phases.length, 4, 'all four marker styles must parse');
+    assert.equal(done('1'), false, '🚧 → not done');
+    assert.equal(done('2'), false, '⏳ → not done');
+    assert.equal(done('3'), true, '[X] → done');
+    assert.equal(done('4'), false, '[~] → not done');
+  });
+
   it('PARSE-12: assigns a single-phase milestone via `Phase N` (no range)', () => {
     assert.equal(data.phases.find((p) => p.number === '10')?.milestoneLabel, 'v2.1 Hotfix');
     const v21 = data.milestones?.find((m) => m.label === 'v2.1 Hotfix');

@@ -17,13 +17,18 @@ const PHASE_HEADER = /^###\s+Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\s*$/;
 
 // Collapsed-roadmap grammar — see 07-RESEARCH.md Patterns 2 & 3.
 const MILESTONES_HEADING = /^##\s+Milestones\s*$/;
-// `## Phases` section heading, and a phase bullet inside it:
-// `- [x] **Phase 21: Knowledge Grading** — ...`. Some collapsed ROADMAPs put
-// the phase name in these bullets rather than the `## Progress` table cells
-// (mcp_omni_connect layout) — the table cells are bare numbers/ranges with no
-// name. Capture group 1 = checkbox marker, 2 = phase number, 3 = phase name.
+// `## Phases` section heading:
 const PHASES_HEADING = /^##\s+Phases\s*$/;
-const PHASE_BULLET = /^- \[([ xX✅])\]\s+\*\*Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\*\*/;
+// A phase bullet inside the `## Phases` section:
+// `- [x] **Phase 21: Knowledge Grading** — ...` or `- 🚧 **Phase 9: Name**`.
+// Some collapsed ROADMAPs put the phase name in these bullets rather than the
+// `## Progress` table cells (mcp_omni_connect layout) — the table cells are
+// bare numbers/ranges with no name. Status markers mirror
+// MILESTONE_BULLET_PATTERN: ✅/🚧/⏳ emoji or a `[ xX~✅]` checkbox; x/X/✅
+// mean done, space/~/🚧/⏳ mean not done. Capture group 1 = status marker,
+// 2 = phase number, 3 = phase name.
+const PHASE_BULLET = /^-\s+(✅|🚧|⏳|\[[ xX~✅]\])\s+\*\*Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\*\*/;
+const PHASE_BULLET_DONE = /[xX✅]/;
 const H2_ANY = /^##\s+/;
 // `- ✅ **label**`, `- 🚧 **label**`, `- [x] **label**`, or `- [ ] **label**`,
 // with an optional em-dash tail. Status markers cover shipped (✅), in-progress
@@ -214,7 +219,7 @@ function parsePhasesBullets(lines: string[]): RoadmapPhase[] {
         phases.push({
           number: m[2],
           name: m[3].trim(),
-          done: m[1] !== ' ',
+          done: PHASE_BULLET_DONE.test(m[1]),
           headerLine: 0,
           endLine: 0,
         });
