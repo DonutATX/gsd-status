@@ -259,6 +259,20 @@ describe('parseRoadmap — collapsed phase-bullet fallback (PARSE-12)', () => {
     assert.deepEqual(v2?.phases, ['8', '9']);
   });
 
+  it('PARSE-12: a following H2 ends the ## Phases section', () => {
+    const d = parseRoadmap(
+      '# Roadmap: Sections\n' +
+        '## Phases\n' +
+        '- [x] **Phase 1: A**\n' +
+        '\n' +
+        '## Backlog\n' +
+        '- [ ] **Phase 99: Later**\n',
+    );
+    assert.equal(d.phases.length, 1, 'only bullets inside ## Phases count');
+    assert.equal(d.phases[0].number, '1');
+    assert.equal(d.phases.find((p) => p.number === '99'), undefined);
+  });
+
   it('PARSE-12: bullet fallback does not fire when the Progress table yields phases', () => {
     // Table cells use `N. Name` format, so the table reader yields phases;
     // the matching `## Phases` bullets must NOT be added on top (guard:
