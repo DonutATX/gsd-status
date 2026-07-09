@@ -219,6 +219,53 @@ describe('parseRoadmap — Progress header detection skips separator row (WR-02)
   });
 });
 
+describe('parseRoadmap — collapsed phase-bullet fallback (PARSE-12)', () => {
+  // mcp_omni_connect layout: the `## Progress` table's phase cells are bare
+  // numbers/ranges (`1–7.2`, `8`) with no `N. Name`, so the table reader yields
+  // 0 phases. Phases must instead be sourced from the `## Phases` section's
+  // `- [x] **Phase N: Name**` bullets, with milestones inferred from the
+  // `Phases X–Y` ranges in the milestone bullets.
+  const data = parseRoadmap(load('collapsed-roadmap-phase-bullets.md'));
+
+  it('PARSE-12: sources phases from bullets when the Progress table yields none', () => {
+    assert.equal(data.phases.length, 6, 'expected all 6 phase bullets');
+  });
+
+  it('PARSE-12: reads number and name from the bullet', () => {
+    const p1 = data.phases.find((p) => p.number === '1');
+    assert.equal(p1?.name, 'Context Injection');
+  });
+
+  it('PARSE-12: parses decimal (inserted) phase numbers', () => {
+    assert.ok(data.phases.find((p) => p.number === '7.1'), 'expected phase 7.1');
+    assert.ok(data.phases.find((p) => p.number === '7.2'), 'expected phase 7.2');
+  });
+
+  it('PARSE-12: reads done-status from the checkbox marker', () => {
+    assert.equal(data.phases.find((p) => p.number === '8')?.done, true, '[x] → done');
+    assert.equal(data.phases.find((p) => p.number === '9')?.done, false, '[ ] → not done');
+  });
+
+  it('PARSE-12: assigns milestoneLabel via the en-dash phase range', () => {
+    assert.equal(data.phases.find((p) => p.number === '1')?.milestoneLabel, 'v1.0 Foundation');
+    assert.equal(data.phases.find((p) => p.number === '7.2')?.milestoneLabel, 'v1.0 Foundation');
+    assert.equal(data.phases.find((p) => p.number === '8')?.milestoneLabel, 'v2.0 Expansion');
+  });
+
+  it('PARSE-12: every milestone owns its phases', () => {
+    const v1 = data.milestones?.find((m) => m.label === 'v1.0 Foundation');
+    const v2 = data.milestones?.find((m) => m.label === 'v2.0 Expansion');
+    assert.deepEqual(v1?.phases, ['1', '7.1', '7.2']);
+    assert.deepEqual(v2?.phases, ['8', '9']);
+  });
+
+  it('PARSE-12: assigns a single-phase milestone via `Phase N` (no range)', () => {
+    assert.equal(data.phases.find((p) => p.number === '10')?.milestoneLabel, 'v2.1 Hotfix');
+    const v21 = data.milestones?.find((m) => m.label === 'v2.1 Hotfix');
+    assert.deepEqual(v21?.phases, ['10']);
+  });
+});
+
 describe('parseRoadmap — expanded roadmap milestone inheritance (#4)', () => {
   // Expanded ROADMAPs use `## Milestone vX.Y ...` H2 sections to group
   // `### Phase N:` detail blocks. Each phase under such a section must
