@@ -259,6 +259,28 @@ describe('parseRoadmap — collapsed phase-bullet fallback (PARSE-12)', () => {
     assert.deepEqual(v2?.phases, ['8', '9']);
   });
 
+  it('PARSE-12: bullet fallback does not fire when the Progress table yields phases', () => {
+    // Table cells use `N. Name` format, so the table reader yields phases;
+    // the matching `## Phases` bullets must NOT be added on top (guard:
+    // data.phases.length === 0).
+    const d = parseRoadmap(
+      '# Roadmap: Guard\n' +
+        '## Phases\n' +
+        '- [x] **Phase 1: A**\n' +
+        '- [ ] **Phase 2: B**\n' +
+        '## Progress\n' +
+        '| Phase | Milestone | Plans Complete | Status | Completed |\n' +
+        '|-------|-----------|----------------|--------|-----------|\n' +
+        '| 1. A | v1.0 | 1/1 | Complete | 2026-01-01 |\n' +
+        '| 2. B | v1.0 | 0/1 | Not started | - |\n',
+    );
+    assert.equal(d.phases.length, 2, 'phase count must not be doubled');
+    // Table-sourced phases carry the Progress milestone column; bullet-sourced
+    // ones would not.
+    assert.equal(d.phases[0].milestoneLabel, 'v1.0', 'phases must come from the table');
+    assert.equal(d.phases[1].milestoneLabel, 'v1.0');
+  });
+
   it('PARSE-12: accepts emoji and [~] markers on phase bullets', () => {
     const d = parseRoadmap(
       '# Roadmap: Markers\n' +
