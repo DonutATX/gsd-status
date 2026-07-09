@@ -32,11 +32,13 @@ const H2_ANY = /^##\s+/;
 // their phases fall through to the synthetic "Other" bucket (#4).
 const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|🚧|⏳|\[[ xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
 const PROGRESS_HEADING = /^##\s+Progress\s*$/;
-// `Phases 33–38`, `Phases 1-7.2` (en-dash/em-dash/hyphen), or a single
-// `Phase 68` (single-phase milestones have no range). Used to infer
-// phase→milestone membership when the ROADMAP has no `## Milestone vX.Y` H2
-// headers (mcp_omni_connect layout).
-const PHASE_RANGE = /Phases?\s+(\d+(?:\.\d+)?)(?:\s*[–—-]\s*(\d+(?:\.\d+)?))?/;
+// `Phases 33–38`, `Phases 1-7.2` (en-dash/em-dash/hyphen). Tried first so a
+// prose `Phase N` mention earlier in the description can't shadow the range;
+// PHASE_SINGLE is the fallback for single-phase milestones (`Phase 68`).
+// Used to infer phase→milestone membership when the ROADMAP has no
+// `## Milestone vX.Y` H2 headers (mcp_omni_connect layout).
+const PHASE_RANGE = /Phases?\s+(\d+(?:\.\d+)?)\s*[–—-]\s*(\d+(?:\.\d+)?)/;
+const PHASE_SINGLE = /Phases?\s+(\d+(?:\.\d+)?)/;
 // WR-02: A Progress table row, parsed by splitting on `|` rather than a rigid
 // full-row regex, so tables with extra/missing trailing columns still parse.
 // Standard GSD Progress columns (1-based after the leading `|`):
@@ -224,15 +226,18 @@ function parsePhasesBullets(lines: string[]): RoadmapPhase[] {
 
 /**
  * Assign each phase's `milestoneLabel` by matching its number against the
- * `Phases X–Y` range in each milestone bullet's description. Phases that
- * already have a label are left untouched. Total: never throws.
+ * `Phases X–Y` range (or single `Phase N`) in each milestone bullet's
+ * description. Phases that already have a label are left untouched.
+ * Total: never throws.
  */
 function assignMilestonesByRange(data: RoadmapData): void {
   if (!data.milestones || data.milestones.length === 0) {
     return;
   }
   const ranges = data.milestones.map((ms) => {
-    const m = ms.description ? PHASE_RANGE.exec(ms.description) : null;
+    const m = ms.description
+      ? PHASE_RANGE.exec(ms.description) ?? PHASE_SINGLE.exec(ms.description)
+      : null;
     return m
       ? { label: ms.label, start: parseFloat(m[1]), end: parseFloat(m[2] ?? m[1]) }
       : null;

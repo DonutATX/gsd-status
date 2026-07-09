@@ -339,6 +339,22 @@ describe('parseRoadmap — in-progress milestone bullets (#4)', () => {
     assert.equal(find('38')?.milestoneLabel, 'v3.2 training_data');
   });
 
+  it('prefers a Phases X–Y range over an earlier prose Phase N mention', () => {
+    // Regression: with an optional range part, PHASE_RANGE.exec matched the
+    // prose "Phase 7" first and treated the milestone as single-phase 7,
+    // leaving phases 8 and 9 unassigned.
+    const data = parseRoadmap(
+      '# Roadmap: Sample\n' +
+        '## Milestones\n' +
+        '- 🚧 **v2.0 Next** — Started after Phase 7 wrapped — Phases 8–9\n' +
+        '## Phase Details\n' +
+        '### Phase 8: A\n**Goal:** a\n' +
+        '### Phase 9: B\n**Goal:** b\n',
+    );
+    assert.equal(data.phases.find((p) => p.number === '8')?.milestoneLabel, 'v2.0 Next');
+    assert.equal(data.phases.find((p) => p.number === '9')?.milestoneLabel, 'v2.0 Next');
+  });
+
   it('includes a [ ] unchecked milestone in milestones[]', () => {
     const data = parseRoadmap(
       '## Milestones\n' +
