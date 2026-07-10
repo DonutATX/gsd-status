@@ -32,10 +32,10 @@ const PHASE_BULLET_DONE = /[xX✅]/;
 const H2_ANY = /^##\s+/;
 // `- ✅ **label**`, `- 🚧 **label**`, `- [x] **label**`, or `- [ ] **label**`,
 // with an optional em-dash tail. Status markers cover shipped (✅), in-progress
-// (🚧), pending (⏳), and any GFM checkbox state — without this, in-progress
+// (🚧), pending (⏳), or a `[ xX~✅]` checkbox — without this, in-progress
 // milestones like `- 🚧 **v3.2 ...**` are dropped from the milestones list and
 // their phases fall through to the synthetic "Other" bucket (#4).
-const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|🚧|⏳|\[[ xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
+const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|🚧|⏳|\[[ xX~✅]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
 const PROGRESS_HEADING = /^##\s+Progress\s*$/;
 // `Phases 33–38`, `Phases 1-7.2` (en-dash/em-dash/hyphen). Tried first so a
 // prose `Phase N` mention earlier in the description can't shadow the range;
