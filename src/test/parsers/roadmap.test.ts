@@ -417,6 +417,16 @@ describe('parseRoadmap — in-progress milestone bullets (#4)', () => {
     const labels = (data.milestones ?? []).map((m) => m.label);
     assert.deepEqual(labels, ['v1.0 Done', 'v2.0 Planned']);
   });
+
+  it('includes [✅] and [~] checkbox milestones in milestones[]', () => {
+    const data = parseRoadmap(
+      '## Milestones\n' +
+        '- [✅] **v1.0 Done** — shipped\n' +
+        '- [~] **v2.0 Started** — in progress\n',
+    );
+    const labels = (data.milestones ?? []).map((m) => m.label);
+    assert.deepEqual(labels, ['v1.0 Done', 'v2.0 Started']);
+  });
 });
 
 describe('parseRoadmap — directive punctuation styles (WR-01)', () => {
