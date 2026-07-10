@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 Phase: Not started (defining requirements)
 Plan: —
 Status: Defining requirements
-Last activity: 2026-06-17 — Milestone v1.0.1 started
+Last activity: 2026-07-10 — Completed quick task 260710-h2s: Widen MILESTONE_BULLET_PATTERN to accept [~] and [✅] checkbox markers
 
 ## Performance Metrics
 
@@ -90,6 +90,12 @@ None yet.
 ### Blockers/Concerns
 
 - STATE.md exact grammar for "latest entry" — needs real STATE.md file review before writing state-parser.ts (Phase 2)
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260710-h2s | Widen MILESTONE_BULLET_PATTERN to accept [~] and [✅] checkbox markers | 2026-07-10 | e1bd032 | [260710-h2s-widen-milestone-bullet-pattern-to-accept](./quick/260710-h2s-widen-milestone-bullet-pattern-to-accept/) |
 
 ## Deferred Items
 
