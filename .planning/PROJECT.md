@@ -8,6 +8,13 @@ A VS Code extension that surfaces the live GSD (Get-Shit-Done) workflow state di
 
 A developer running GSD in a project can glance at VS Code and immediately know: which milestone, which phase, and what just happened — without leaving the editor.
 
+## Current Milestone: v1.0.1 Collapsed-Roadmap Phase-Bullet Fallback
+
+**Goal:** Phases render in the tree view for collapsed ROADMAPs that list phase names in a `## Phases` bullet section instead of in the `## Progress` table.
+
+**Target features:**
+- Collapsed-roadmap parsing falls back to `## Phases` bullets when the `## Progress` table yields no phases (real-world repro: `mcp_omni_connect`).
+
 ## Requirements
 
 ### Validated
@@ -30,6 +37,7 @@ A developer running GSD in a project can glance at VS Code and immediately know:
 - [ ] Side panel (tree view) lists all phases from ROADMAP.md with status indicators and recent STATE.md activity
 - [ ] Commands: refresh status, open ROADMAP.md, open STATE.md
 - [ ] Distributable as a local `.vsix` build; marketplace publishing prepared but deferred to a later milestone
+- [ ] Collapsed ROADMAPs whose phase names live in a `## Phases` bullet section (not the `## Progress` table) still render all phases in the tree view
 
 ### Out of Scope
 
@@ -86,4 +94,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-20 after initialization*
+*Last updated: 2026-06-17 — started milestone v1.0.1*

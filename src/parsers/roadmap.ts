@@ -17,18 +17,33 @@ const PHASE_HEADER = /^###\s+Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\s*$/;
 
 // Collapsed-roadmap grammar — see 07-RESEARCH.md Patterns 2 & 3.
 const MILESTONES_HEADING = /^##\s+Milestones\s*$/;
+// `## Phases` section heading:
+const PHASES_HEADING = /^##\s+Phases\s*$/;
+// A phase bullet inside the `## Phases` section:
+// `- [x] **Phase 21: Knowledge Grading** — ...` or `- 🚧 **Phase 9: Name**`.
+// Some collapsed ROADMAPs put the phase name in these bullets rather than the
+// `## Progress` table cells (mcp_omni_connect layout) — the table cells are
+// bare numbers/ranges with no name. Status markers mirror
+// MILESTONE_BULLET_PATTERN: ✅/🚧/⏳ emoji or a `[ xX~✅]` checkbox; x/X/✅
+// mean done, space/~/🚧/⏳ mean not done. Capture group 1 = status marker,
+// 2 = phase number, 3 = phase name.
+const PHASE_BULLET = /^-\s+(✅|🚧|⏳|\[[ xX~✅]\])\s+\*\*Phase\s+(\d+(?:\.\d+)?):\s+(.+?)\*\*/;
+const PHASE_BULLET_DONE = /[xX✅]/;
 const H2_ANY = /^##\s+/;
 // `- ✅ **label**`, `- 🚧 **label**`, `- [x] **label**`, or `- [ ] **label**`,
 // with an optional em-dash tail. Status markers cover shipped (✅), in-progress
-// (🚧), pending (⏳), and any GFM checkbox state — without this, in-progress
+// (🚧), pending (⏳), or a `[ xX~✅]` checkbox — without this, in-progress
 // milestones like `- 🚧 **v3.2 ...**` are dropped from the milestones list and
 // their phases fall through to the synthetic "Other" bucket (#4).
-const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|🚧|⏳|\[[ xX]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
+const MILESTONE_BULLET_PATTERN = /^-\s+(?:✅|🚧|⏳|\[[ xX~✅]\])\s+\*\*(.+?)\*\*(?:\s+—\s+(.+?))?\s*$/;
 const PROGRESS_HEADING = /^##\s+Progress\s*$/;
-// `Phases 33–38`, `Phases 1-7.2`, with en-dash/em-dash/hyphen. Used to infer
-// phase→milestone membership when the ROADMAP has no `## Milestone vX.Y` H2
-// headers (mcp_omni_connect layout).
+// `Phases 33–38`, `Phases 1-7.2` (en-dash/em-dash/hyphen). Tried first so a
+// prose `Phase N` mention earlier in the description can't shadow the range;
+// PHASE_SINGLE is the fallback for single-phase milestones (`Phase 68`).
+// Used to infer phase→milestone membership when the ROADMAP has no
+// `## Milestone vX.Y` H2 headers (mcp_omni_connect layout).
 const PHASE_RANGE = /Phases?\s+(\d+(?:\.\d+)?)\s*[–—-]\s*(\d+(?:\.\d+)?)/;
+const PHASE_SINGLE = /Phases?\s+(\d+(?:\.\d+)?)/;
 // WR-02: A Progress table row, parsed by splitting on `|` rather than a rigid
 // full-row regex, so tables with extra/missing trailing columns still parse.
 // Standard GSD Progress columns (1-based after the leading `|`):
@@ -177,6 +192,74 @@ function parseMilestonesSection(lines: string[]): RoadmapMilestone[] | undefined
 }
 
 /**
+ * Parse phases from the `## Phases` section's `- [x] **Phase N: Name**`
+ * bullets. Used as the collapsed-roadmap fallback when the `## Progress` table
+ * yields no phases (mcp_omni_connect layout — bare-number Progress cells, names
+ * only in the bullets). Returns number/name/done; milestoneLabel is assigned
+ * later by `assignMilestonesByRange`. headerLine/endLine are the 0 sentinel
+ * (no `### Phase N:` detail block to scroll to). Total: never throws.
+ */
+function parsePhasesBullets(lines: string[]): RoadmapPhase[] {
+  const phases: RoadmapPhase[] = [];
+  let inSection = false;
+  for (const line of lines) {
+    if (PHASES_HEADING.test(line)) {
+      inSection = true;
+      continue;
+    }
+    // Another H2 ends the section. H3 subsection headers (`### ...`) and
+    // `<details>` wrappers do not, so grouped bullets are still collected.
+    if (inSection && H2_ANY.test(line)) {
+      inSection = false;
+      continue;
+    }
+    if (inSection) {
+      const m = PHASE_BULLET.exec(line);
+      if (m) {
+        phases.push({
+          number: m[2],
+          name: m[3].trim(),
+          done: PHASE_BULLET_DONE.test(m[1]),
+          headerLine: 0,
+          endLine: 0,
+        });
+      }
+    }
+  }
+  return phases;
+}
+
+/**
+ * Assign each phase's `milestoneLabel` by matching its number against the
+ * `Phases X–Y` range (or single `Phase N`) in each milestone bullet's
+ * description. Phases that already have a label are left untouched.
+ * Total: never throws.
+ */
+function assignMilestonesByRange(data: RoadmapData): void {
+  if (!data.milestones || data.milestones.length === 0) {
+    return;
+  }
+  const ranges = data.milestones.map((ms) => {
+    const m = ms.description
+      ? PHASE_RANGE.exec(ms.description) ?? PHASE_SINGLE.exec(ms.description)
+      : null;
+    return m
+      ? { label: ms.label, start: parseFloat(m[1]), end: parseFloat(m[2] ?? m[1]) }
+      : null;
+  });
+  for (const phase of data.phases) {
+    if (phase.milestoneLabel !== undefined) {
+      continue;
+    }
+    const n = parseFloat(phase.number);
+    const hit = ranges.find((r) => r !== null && n >= r.start && n <= r.end);
+    if (hit) {
+      phase.milestoneLabel = hit.label;
+    }
+  }
+}
+
+/**
  * Parse a milestone-collapsed roadmap: phases come from the `## Progress`
  * table, milestones from the `## Milestones` section. Total: never throws;
  * a missing Progress table yields phases: [].
@@ -244,6 +327,15 @@ function parseCollapsedRoadmap(lines: string[]): RoadmapData {
         });
       }
     }
+  }
+
+  // PARSE-12: when the Progress table yields no phases (bare-number cells like
+  // `21` / `1–7.2` that carry no name — mcp_omni_connect layout), fall back to
+  // the `## Phases` section bullets, then infer each phase's milestone from the
+  // `Phases X–Y` ranges in the milestone bullets.
+  if (data.phases.length === 0) {
+    data.phases = parsePhasesBullets(lines);
+    assignMilestonesByRange(data);
   }
 
   // Populate each milestone's phase-number list from grouped phases.
@@ -391,26 +483,11 @@ export function parseRoadmap(text: string): RoadmapData {
   closeCurrent(lines.length);
 
   // Infer milestoneLabel for phases that weren't assigned by an H2 header.
-  // ROADMAPs without `## Milestone vX.Y` sections (e.g. mcp_omni_connect)
-  // express the phase→milestone link via the bullet description, like
-  // `**v3.2 ...** — Phases 33–38`. Without this pass, every detail phase
-  // falls into the synthetic "Other" bucket in the tree view (#4).
-  if (data.milestones && data.milestones.length > 0) {
-    const ranges = data.milestones.map((ms) => {
-      const m = ms.description ? PHASE_RANGE.exec(ms.description) : null;
-      return m ? { label: ms.label, start: parseFloat(m[1]), end: parseFloat(m[2]) } : null;
-    });
-    for (const phase of data.phases) {
-      if (phase.milestoneLabel !== undefined) {
-        continue;
-      }
-      const n = parseFloat(phase.number);
-      const hit = ranges.find((r) => r !== null && n >= r.start && n <= r.end);
-      if (hit) {
-        phase.milestoneLabel = hit.label;
-      }
-    }
-  }
+  // ROADMAPs without `## Milestone vX.Y` sections express the phase→milestone
+  // link via the bullet description, like `**v3.2 ...** — Phases 33–38`.
+  // Without this pass, every detail phase falls into the synthetic "Other"
+  // bucket in the tree view (#4).
+  assignMilestonesByRange(data);
 
   return data;
 }

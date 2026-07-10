@@ -219,6 +219,106 @@ describe('parseRoadmap — Progress header detection skips separator row (WR-02)
   });
 });
 
+describe('parseRoadmap — collapsed phase-bullet fallback (PARSE-12)', () => {
+  // mcp_omni_connect layout: the `## Progress` table's phase cells are bare
+  // numbers/ranges (`1–7.2`, `8`) with no `N. Name`, so the table reader yields
+  // 0 phases. Phases must instead be sourced from the `## Phases` section's
+  // `- [x] **Phase N: Name**` bullets, with milestones inferred from the
+  // `Phases X–Y` ranges in the milestone bullets.
+  const data = parseRoadmap(load('collapsed-roadmap-phase-bullets.md'));
+
+  it('PARSE-12: sources phases from bullets when the Progress table yields none', () => {
+    assert.equal(data.phases.length, 6, 'expected all 6 phase bullets');
+  });
+
+  it('PARSE-12: reads number and name from the bullet', () => {
+    const p1 = data.phases.find((p) => p.number === '1');
+    assert.equal(p1?.name, 'Context Injection');
+  });
+
+  it('PARSE-12: parses decimal (inserted) phase numbers', () => {
+    assert.ok(data.phases.find((p) => p.number === '7.1'), 'expected phase 7.1');
+    assert.ok(data.phases.find((p) => p.number === '7.2'), 'expected phase 7.2');
+  });
+
+  it('PARSE-12: reads done-status from the checkbox marker', () => {
+    assert.equal(data.phases.find((p) => p.number === '8')?.done, true, '[x] → done');
+    assert.equal(data.phases.find((p) => p.number === '9')?.done, false, '[ ] → not done');
+  });
+
+  it('PARSE-12: assigns milestoneLabel via the en-dash phase range', () => {
+    assert.equal(data.phases.find((p) => p.number === '1')?.milestoneLabel, 'v1.0 Foundation');
+    assert.equal(data.phases.find((p) => p.number === '7.2')?.milestoneLabel, 'v1.0 Foundation');
+    assert.equal(data.phases.find((p) => p.number === '8')?.milestoneLabel, 'v2.0 Expansion');
+  });
+
+  it('PARSE-12: every milestone owns its phases', () => {
+    const v1 = data.milestones?.find((m) => m.label === 'v1.0 Foundation');
+    const v2 = data.milestones?.find((m) => m.label === 'v2.0 Expansion');
+    assert.deepEqual(v1?.phases, ['1', '7.1', '7.2']);
+    assert.deepEqual(v2?.phases, ['8', '9']);
+  });
+
+  it('PARSE-12: a following H2 ends the ## Phases section', () => {
+    const d = parseRoadmap(
+      '# Roadmap: Sections\n' +
+        '## Phases\n' +
+        '- [x] **Phase 1: A**\n' +
+        '\n' +
+        '## Backlog\n' +
+        '- [ ] **Phase 99: Later**\n',
+    );
+    assert.equal(d.phases.length, 1, 'only bullets inside ## Phases count');
+    assert.equal(d.phases[0].number, '1');
+    assert.equal(d.phases.find((p) => p.number === '99'), undefined);
+  });
+
+  it('PARSE-12: bullet fallback does not fire when the Progress table yields phases', () => {
+    // Table cells use `N. Name` format, so the table reader yields phases;
+    // the matching `## Phases` bullets must NOT be added on top (guard:
+    // data.phases.length === 0).
+    const d = parseRoadmap(
+      '# Roadmap: Guard\n' +
+        '## Phases\n' +
+        '- [x] **Phase 1: A**\n' +
+        '- [ ] **Phase 2: B**\n' +
+        '## Progress\n' +
+        '| Phase | Milestone | Plans Complete | Status | Completed |\n' +
+        '|-------|-----------|----------------|--------|-----------|\n' +
+        '| 1. A | v1.0 | 1/1 | Complete | 2026-01-01 |\n' +
+        '| 2. B | v1.0 | 0/1 | Not started | - |\n',
+    );
+    assert.equal(d.phases.length, 2, 'phase count must not be doubled');
+    // Table-sourced phases carry the Progress milestone column; bullet-sourced
+    // ones would not.
+    assert.equal(d.phases[0].milestoneLabel, 'v1.0', 'phases must come from the table');
+    assert.equal(d.phases[1].milestoneLabel, 'v1.0');
+  });
+
+  it('PARSE-12: accepts emoji and [~] markers on phase bullets', () => {
+    const d = parseRoadmap(
+      '# Roadmap: Markers\n' +
+        '## Phases\n' +
+        '- 🚧 **Phase 1: A**\n' +
+        '- ⏳ **Phase 2: B**\n' +
+        '- [X] **Phase 3: C**\n' +
+        '- [~] **Phase 4: D**\n',
+    );
+    const done = (n: string) => d.phases.find((p) => p.number === n)?.done;
+    assert.equal(d.phases.length, 4, 'all four marker styles must parse');
+    assert.equal(done('1'), false, '🚧 → not done');
+    assert.equal(done('2'), false, '⏳ → not done');
+    assert.equal(done('3'), true, '[X] → done');
+    assert.equal(done('4'), false, '[~] → not done');
+  });
+
+  it('PARSE-12: assigns a single-phase milestone via `Phase N` (no range)', () => {
+    assert.equal(data.phases.find((p) => p.number === '10')?.milestoneLabel, 'v2.1 Hotfix');
+    const v21 = data.milestones?.find((m) => m.label === 'v2.1 Hotfix');
+    assert.deepEqual(v21?.phases, ['10']);
+  });
+});
+
 describe('parseRoadmap — expanded roadmap milestone inheritance (#4)', () => {
   // Expanded ROADMAPs use `## Milestone vX.Y ...` H2 sections to group
   // `### Phase N:` detail blocks. Each phase under such a section must
@@ -292,6 +392,22 @@ describe('parseRoadmap — in-progress milestone bullets (#4)', () => {
     assert.equal(find('38')?.milestoneLabel, 'v3.2 training_data');
   });
 
+  it('prefers a Phases X–Y range over an earlier prose Phase N mention', () => {
+    // Regression: with an optional range part, PHASE_RANGE.exec matched the
+    // prose "Phase 7" first and treated the milestone as single-phase 7,
+    // leaving phases 8 and 9 unassigned.
+    const data = parseRoadmap(
+      '# Roadmap: Sample\n' +
+        '## Milestones\n' +
+        '- 🚧 **v2.0 Next** — Started after Phase 7 wrapped — Phases 8–9\n' +
+        '## Phase Details\n' +
+        '### Phase 8: A\n**Goal:** a\n' +
+        '### Phase 9: B\n**Goal:** b\n',
+    );
+    assert.equal(data.phases.find((p) => p.number === '8')?.milestoneLabel, 'v2.0 Next');
+    assert.equal(data.phases.find((p) => p.number === '9')?.milestoneLabel, 'v2.0 Next');
+  });
+
   it('includes a [ ] unchecked milestone in milestones[]', () => {
     const data = parseRoadmap(
       '## Milestones\n' +
@@ -300,6 +416,16 @@ describe('parseRoadmap — in-progress milestone bullets (#4)', () => {
     );
     const labels = (data.milestones ?? []).map((m) => m.label);
     assert.deepEqual(labels, ['v1.0 Done', 'v2.0 Planned']);
+  });
+
+  it('includes [✅] and [~] checkbox milestones in milestones[]', () => {
+    const data = parseRoadmap(
+      '## Milestones\n' +
+        '- [✅] **v1.0 Done** — shipped\n' +
+        '- [~] **v2.0 Started** — in progress\n',
+    );
+    const labels = (data.milestones ?? []).map((m) => m.label);
+    assert.deepEqual(labels, ['v1.0 Done', 'v2.0 Started']);
   });
 });
 
